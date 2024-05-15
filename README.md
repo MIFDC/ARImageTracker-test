@@ -19,3 +19,12 @@ if (Platform.OS === 'web') {
     const rootTag = document.getElementById('root') || document.getElementById('X');
     AppRegistry.runApplication('main', { rootTag });
 }
+
+
+
+run:
+npx expo run:android
+
+
+
+
