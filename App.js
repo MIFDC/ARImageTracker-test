@@ -2,6 +2,8 @@ import {
   ViroARScene,
   ViroARSceneNavigator,
   ViroAnimations,
+  ViroARImageMarker,
+  ViroARTrackingTargets,
   ViroText,
   ViroBox,
   ViroSphere,
@@ -19,6 +21,23 @@ import { transform } from "typescript";
 
 
 
+const imageUrl = './assets/BarCode/qrcode_www.bing.com.png'
+
+
+function onCameraARHitHandler(transform) {
+
+  const cameraOrientationValue = transform['cameraOrientation'];
+  const hitTestResults = transform['hitTestResults'];
+
+  //console.log("cameraOrientationValue", cameraOrientationValue);
+  //console.log("hitTestResults", hitTestResults);
+}
+
+const barCodeHandler = () => {
+  console.log(imageUrl)
+
+}
+
 const InitialScene = () => {
 
   ViroMaterials.createMaterials({
@@ -35,14 +54,6 @@ const InitialScene = () => {
     }
   })
 
-  function onCameraARHitHandler(transform) {
-    const cameraOrientationValue = transform['cameraOrientation'];
-    const hitTestResults = transform['hitTestResults'];
-
-    console.log("cameraOrientationValue", cameraOrientationValue);
-    console.log("hitTestResults", hitTestResults);
-
-  }
 
   return (
     <ViroARScene
@@ -51,7 +62,9 @@ const InitialScene = () => {
         text={"Hello World"}
         position={[0, 0, -1]}
         style={styles.helloWorldTextStyle} />*/}
-      <ViroCamera position={[0, 0, 0]} active={true} />
+      <ViroARImageMarker target={"BarCode"} onAnchorFound={() => barCodeHandler}>
+
+      </ViroARImageMarker>
       <ViroBox
         scale={[0.2, 0.2, 0.2]}
         position={[0, 0.5, -1]}
@@ -72,7 +85,7 @@ export default () => {
         }}
         style={{ flex: 1 }} />
       <View style={styles.controlView}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => barCodeHandler()}>
           <Text>Get the position</Text>
         </TouchableOpacity>
       </View>
@@ -80,6 +93,16 @@ export default () => {
 
   );
 };
+
+
+ViroARTrackingTargets.createTargets({
+  "BarCode": {
+    source: require(imageUrl),
+    orientation: "Up",
+    type: 'Image',
+    physicalWidth: 0.05
+  },
+});
 
 var styles = StyleSheet.create({
   mainView: {
