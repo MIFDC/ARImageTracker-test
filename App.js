@@ -19,63 +19,75 @@ import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { transform } from "typescript";
 
+export default () => {
 
+  const imageUrl = './assets/BarCode/qrcode_www.bing.com.png'
 
-const imageUrl = './assets/BarCode/qrcode_www.bing.com.png'
+  const [currentOrientation, setCurrentOrientation]=useState(null);
+  const [currentHitTest, setCurrentHitTest]=useState(null)
 
+  ViroARTrackingTargets.createTargets({
+    "BarCode": {
+      source: require(imageUrl),
+      orientation: "Up",
+      type: 'Image',
+      physicalWidth: 0.05
+    },
+  });
 
-function onCameraARHitHandler(transform) {
+  const onCameraARHitHandler=(transform)=> {
 
-  const cameraOrientationValue = transform['cameraOrientation'];
-  const hitTestResults = transform['hitTestResults'];
+    const cameraOrientationValue = transform['cameraOrientation'];
+    const hitTestResults = transform['hitTestResults'];
+    setCurrentOrientation(cameraOrientationValue);
+    setCurrentHitTest(hitTestResults);
 
-  //console.log("cameraOrientationValue", cameraOrientationValue);
-  //console.log("hitTestResults", hitTestResults);
-}
+  }
 
-const barCodeHandler = () => {
-  console.log(imageUrl)
+  const barCodeHandler = () => {
+    console.log(imageUrl)
+    console.log(currentOrientation);
+    console.log(currentHitTest);
+  }
 
-}
+  const InitialScene = () => {
 
-const InitialScene = () => {
-
-  ViroMaterials.createMaterials({
-    wood: {
-      diffuseTexture: require('./assets/Texture/Wood.jpg')
-    }
-  })
-  ViroAnimations.registerAnimations({
-    loopRotate: {
-      duration: 1000,
-      properties: {
-        rotateY: '+=45'
+    ViroMaterials.createMaterials({
+      wood: {
+        diffuseTexture: require('./assets/Texture/Wood.jpg')
       }
-    }
-  })
+    })
+    ViroAnimations.registerAnimations({
+      loopRotate: {
+        duration: 1000,
+        properties: {
+          rotateY: '+=45'
+        }
+      }
+    })
 
 
-  return (
-    <ViroARScene
-      onCameraARHitTest={(transformInfo) => onCameraARHitHandler(transformInfo)}>
-      {/*<ViroText
+    return (
+      <ViroARScene
+        onCameraARHitTest={(transformInfo) => onCameraARHitHandler(transformInfo)}>
+        {/*<ViroText
         text={"Hello World"}
         position={[0, 0, -1]}
         style={styles.helloWorldTextStyle} />*/}
-      <ViroARImageMarker target={"BarCode"} onAnchorFound={() => barCodeHandler}>
+        <ViroARImageMarker target={"BarCode"} onAnchorFound={() => barCodeHandler}>
+          <ViroBox
+            scale={[0.2, 0.2, 0.2]}
+            position={[0, 0.5, -1]}
+            materials={["wood"]}
+            animation={{ name: 'loopRotate', loop: true, run: true }}
+          />
+        </ViroARImageMarker>
 
-      </ViroARImageMarker>
-      <ViroBox
-        scale={[0.2, 0.2, 0.2]}
-        position={[0, 0.5, -1]}
-        materials={["wood"]}
-        animation={{ name: 'loopRotate', loop: true, run: true }}
-      />
-    </ViroARScene>
-  )
-}
+      </ViroARScene>
+    )
+  }
 
-export default () => {
+
 
   return (
     <View style={styles.mainView}>
@@ -86,23 +98,17 @@ export default () => {
         style={{ flex: 1 }} />
       <View style={styles.controlView}>
         <TouchableOpacity onPress={() => barCodeHandler()}>
-          <Text>Get the position</Text>
+          <Text>Try Result</Text>
         </TouchableOpacity>
       </View>
     </View>
 
   );
+
 };
 
 
-ViroARTrackingTargets.createTargets({
-  "BarCode": {
-    source: require(imageUrl),
-    orientation: "Up",
-    type: 'Image',
-    physicalWidth: 0.05
-  },
-});
+
 
 var styles = StyleSheet.create({
   mainView: {
