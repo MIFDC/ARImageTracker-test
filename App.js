@@ -13,9 +13,10 @@ import {
   ViroConstants,
   ViroTrackingStateConstants,
 } from "@viro-community/react-viro";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { transform } from "typescript";
+
 
 
 const InitialScene = () => {
@@ -27,25 +28,20 @@ const InitialScene = () => {
   })
   ViroAnimations.registerAnimations({
     loopRotate: {
-      dureation: 1000,
+      duration: 1000,
       properties: {
-        rotateX: '+=45'
+        rotateY: '+=45'
       }
     }
   })
-
-  const [currentOrientation, setCurrentOrientation] = useState(null);
-  const [currentHitResults, setCurrentHitResults] = useState(null);
-  const [currentData, setCurrentData] = useState(null);
-
 
   function onCameraARHitHandler(transform) {
     const cameraOrientationValue = transform['cameraOrientation'];
     const hitTestResults = transform['hitTestResults'];
 
-    console.log("cameraOrientationValue",cameraOrientationValue);
+    console.log("cameraOrientationValue", cameraOrientationValue);
     console.log("hitTestResults", hitTestResults);
-    
+
   }
 
   return (
@@ -60,7 +56,7 @@ const InitialScene = () => {
         scale={[0.2, 0.2, 0.2]}
         position={[0, 0.5, -1]}
         materials={["wood"]}
-      /*animation={{ name: 'loopRotate', loop: true, run: true }}*/
+        animation={{ name: 'loopRotate', loop: true, run: true }}
       />
     </ViroARScene>
   )
@@ -86,14 +82,6 @@ export default () => {
 };
 
 var styles = StyleSheet.create({
-  f1: { flex: 1 },
-  helloWorldTextStyle: {
-    fontFamily: "Arial",
-    fontSize: 30,
-    color: "red",
-    textAlignVertical: "center",
-    textAlign: "center",
-  },
   mainView: {
     flex: 1
   },
