@@ -23,8 +23,10 @@ export default () => {
 
   const imageUrl = './assets/BarCode/qrcode_www.bing.com.png'
 
-  const [currentOrientation, setCurrentOrientation]=useState(null);
-  const [currentHitTest, setCurrentHitTest]=useState(null)
+  const [currentOrientation, setCurrentOrientation] = useState(null);
+  const [currentHitTest, setCurrentHitTest] = useState(null);
+  const [currentBarCodePosition, setCurrentBarCodePosition] = useState(null);
+  const [currentBarCodeRotation, setCurrentBarCodeRotation] = useState(null);
 
   ViroARTrackingTargets.createTargets({
     "BarCode": {
@@ -35,20 +37,54 @@ export default () => {
     },
   });
 
-  const onCameraARHitHandler=(transform)=> {
+
+  const onCameraARHitHandler = (transform) => {
 
     const cameraOrientationValue = transform['cameraOrientation'];
     const hitTestResults = transform['hitTestResults'];
     setCurrentOrientation(cameraOrientationValue);
     setCurrentHitTest(hitTestResults);
-
+    //console.log(hitTestResult);
+    //console.log(cameraOrinetationValue);
   }
 
-  const barCodeHandler = () => {
-    console.log(imageUrl)
-    console.log(currentOrientation);
-    console.log(currentHitTest);
+  const barCodeHandler = (transform) => {
+    console.log(imageUrl);
+    const barCodePosition = transform['position'];
+    const barCodeRotation = transform['rotation']
+    setCurrentBarCodePosition(barCodePosition);
+    setCurrentBarCodeRotation(barCodeRotation);
+    console.log(barCodePosition);
   }
+
+
+  function calculateDistance(pos1, pos2) {
+    const dx = pos1[0] - pos2[0];
+    const dy = pos1[1] - pos2[1];
+    const dz = pos1[2] - pos2[2];
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  }
+
+  function calculateDirection(cameraPos, objectPos) {
+    return [
+      objectPos[0] - cameraPos[0],
+      objectPos[1] - cameraPos[1],
+      objectPos[2] - cameraPos[2]
+    ];
+  }
+
+  const calculateHandler = () => {
+    console.log("Camera Orientation position: ", currentOrientation.position);
+    //const hitTestResultsPosition = currentHitTest[0];
+    //console.log("Hit Test Result", hitTestResultsPosition);
+    console.log("BarCode Position: ", currentBarCodePosition);
+    //console.log("BarCode Rotation: ", currentBarCodeRotation)
+    const distance = calculateDistance(currentOrientation.position, currentBarCodePosition);
+    const direction = calculateDirection(currentOrientation.position, currentBarCodePosition);
+    console.log("distance: ", distance);
+    console.log("direction: ", direction);
+  }
+
 
   const InitialScene = () => {
 
@@ -74,7 +110,7 @@ export default () => {
         text={"Hello World"}
         position={[0, 0, -1]}
         style={styles.helloWorldTextStyle} />*/}
-        <ViroARImageMarker target={"BarCode"} onAnchorFound={() => barCodeHandler}>
+        <ViroARImageMarker target={"BarCode"} onAnchorFound={(transformInfo) => barCodeHandler(transformInfo)}>
           <ViroBox
             scale={[0.2, 0.2, 0.2]}
             position={[0, 0.5, -1]}
@@ -97,8 +133,8 @@ export default () => {
         }}
         style={{ flex: 1 }} />
       <View style={styles.controlView}>
-        <TouchableOpacity onPress={() => barCodeHandler()}>
-          <Text>Try Result</Text>
+        <TouchableOpacity onPress={() => calculateHandler()}>
+          <Text>Calculate the Distance</Text>
         </TouchableOpacity>
       </View>
     </View>

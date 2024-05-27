@@ -24,7 +24,3 @@ if (Platform.OS === 'web') {
 
 run:
 npx expo run:android
-
-
-
-
