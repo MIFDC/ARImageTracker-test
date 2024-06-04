@@ -16,9 +16,10 @@ import {
   ViroTrackingStateConstants,
 } from "@viro-community/react-viro";
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Text, TouchableOpacity, Image} from "react-native";
+import { StyleSheet, View, Text, TouchableOpacity, Image } from "react-native";
 import { transform } from "typescript";
 import { Camera } from "expo-camera";
+import { mat4, vec3, quat } from 'gl-matrix';
 
 export default () => {
 
@@ -32,11 +33,12 @@ export default () => {
   }, []);
 
   const [currentCameraOrientation, setCurrentCameraOrientation] = useState(null);
-  const [cameraOrientationFound, setcameraOrientationFound] = useState(null);
+  const [cameraOrientationFound, setCameraOrientationFound] = useState(null);
   const [hitTestResults, setHitTestResults] = useState(null);
   const [currentBarCodePosition, setCurrentBarCodePosition] = useState(null);
   const [currentBarCodeRotation, setCurrentBarCodeRotation] = useState(null);
   const [scannedResult, setScannedResult] = useState(null);
+  const [isAnchorFound, setIsAnchorFound] = useState(false);
 
   ViroARTrackingTargets.createTargets({
     "BarCode": {
@@ -52,32 +54,35 @@ export default () => {
 
     const cameraOrientationValue = transform;
     //console.log(transform);
-    //console.log("cameraOrientationValue:", cameraOrientationValue);
+    // console.log("cameraOrientationValue:", cameraOrientationValue);
     setCurrentCameraOrientation(cameraOrientationValue);
+    // console.log("cameraOrientationValue in onCameraHandler:", cameraOrientationValue);
   }
 
-useEffect(() => {
-  //console.log("currentCameraOrientation:",currentCameraOrientation);
-  return;
-}, [currentCameraOrientation]);
+  useEffect(() => {
+    if (isAnchorFound){
+      setCameraOrientationFound(currentCameraOrientation);
+      console.log("currentCameraOrientation in useEffect:",currentCameraOrientation);
+      setIsAnchorFound(false);
+    }
+
+    return;
+  }, [currentCameraOrientation,isAnchorFound]);
 
   const scanQRCodeFromImage = async (imagePath) => {
 
-      const scanResult = await Camera.scanFromURLAsync(imagePath);
-      const scanResultnew = scanResult[0];
-      const scanResultData = scanResultnew["data"];
-      console.log("scanResultData:", scanResultData);
-      setScannedResult(scanResultData);
-    
+    const scanResult = await Camera.scanFromURLAsync(imagePath);
+    const scanResultnew = scanResult[0];
+    const scanResultData = scanResultnew["data"];
+    console.log("scanResultData:", scanResultData);
+    setScannedResult(scanResultData);
+
   }
 
-  const triggerWhenBarCodeFound=() =>{
-    setcameraOrientationFound(currentCameraOrientation);
-    console.log(currentCameraOrientation)
-  }
 
-  const onBarCodeFound = (transform) => {
-
+  const onBarCodeFoundMarker = (transform) => {
+    // console.log("currentCameraOrientation in app", currentCameraOrientation);
+    setCameraOrientationFound(currentCameraOrientation);
     scanQRCodeFromImage(imageUrl);
     const barCodePosition = transform['position'];
     const barCodeRotation = transform['rotation']
@@ -85,15 +90,16 @@ useEffect(() => {
     setCurrentBarCodeRotation(barCodeRotation);
     // console.log(barCodePosition);
     //console.log(cameraOrientation)
-    console.log(transform)
+    setIsAnchorFound(true);
+    // console.log("onBarCodeFound transformInfo Marker", transform)
   }
 
 
-  useEffect(() => {
-    if (scannedResult !== null) {
-      console.log('Scanned Result:', scannedResult);
-    }
-  }, [scannedResult]);
+  // useEffect(() => {
+  //   if (scannedResult !== null) {
+  //     console.log('Scanned Result:', scannedResult);
+  //   }
+  // }, [scannedResult]);
 
 
 
@@ -112,21 +118,61 @@ useEffect(() => {
     ];
   }
 
+  // 将度数转换为弧度
+  const degToRad = (deg) => deg * (Math.PI / 180);
+
+  // 将欧拉角转换为四元数
+  const eulerToQuat = (euler) => {
+    const q = quat.create();
+    quat.fromEuler(q, euler[0], euler[1], euler[2]);
+    return q;
+  };
+
+  // 创建变换矩阵
+  const createTransformationMatrix = (position, rotation) => {
+    const translation = vec3.fromValues(...position);
+    const quaternion = eulerToQuat(rotation.map(degToRad));
+
+    const matrix = mat4.create();
+    mat4.fromRotationTranslation(matrix, quaternion, translation);
+
+    return matrix;
+  };
+
+
   const calculateHandler = () => {
 
-
+    const cameraPosition = cameraOrientationFound["position"]
+    const cameraRotation = cameraOrientationFound["rotation"]
     //console.log("Camera Orientation position: ", cameraOrientation.position);
     //const hitTestResultsPosition = hitTestResults[0];
     //console.log("Hit Test Result", hitTestResultsPosition);
-    console.log("Camera Position:", currentCameraOrientation["position"]);
-    console.log("Camera Rotation", currentCameraOrientation["rotation"]);
+    console.log("cameraOrientationFound:", cameraOrientationFound);
+    console.log("Camera Position:", cameraPosition);
+    console.log("Camera Rotation", cameraRotation);
     console.log("BarCode Position: ", currentBarCodePosition);
     console.log("BarCode Rotation: ", currentBarCodeRotation);
-    console.log(cameraOrientationFound);
-    const distance = calculateDistance(currentCameraOrientation["position"], currentBarCodePosition);
-    const direction = calculateVectors(currentCameraOrientation["position"], currentBarCodePosition);
+    const cameraMatrix = createTransformationMatrix(cameraPosition, cameraRotation);
+    const barCodeMatrix = createTransformationMatrix(currentBarCodePosition, currentBarCodeRotation);
+
+    // 提取变换后的全局位置
+    const cameraGlobalPosition = vec3.create();
+    mat4.getTranslation(cameraGlobalPosition, cameraMatrix);
+
+    const barCodeGlobalPosition = vec3.create();
+    mat4.getTranslation(barCodeGlobalPosition, barCodeMatrix);
+
+    const accurateVector = vec3.create();
+    vec3.subtract(accurateVector, barCodeGlobalPosition, cameraGlobalPosition);
+    const accurateDistance = vec3.length(accurateVector);
+    console.log('vector considering rotation:', accurateVector);
+    console.log('distance considering rotation:', accurateDistance);
+
+    //distance calculated simply with position
+    const distance = calculateDistance(cameraPosition, currentBarCodePosition);
+    const direction = calculateVectors(cameraPosition, currentBarCodePosition);
     console.log("distance: ", distance);
-    console.log("direction: ", direction);
+    console.log("verctor between camera and barcode: ", direction);
   }
 
 
@@ -150,16 +196,16 @@ useEffect(() => {
 
     return (
       <ViroARScene
-        onCameraTransformUpdate={(transformInfo) => onCameraTransformHandler(transformInfo)}>
+        onCameraTransformUpdate={(orientationInfo) => onCameraTransformHandler(orientationInfo)}
+      >
         {/*<ViroText
         text={"Hello World"}
         position={[0, 0, -1]}
         style={styles.helloWorldTextStyle} />*/}
         <ViroARImageMarker target={"BarCode"} onAnchorFound={(transformInfo) => {
-          onBarCodeFound(transformInfo);
-          triggerWhenBarCodeFound();
+          onBarCodeFoundMarker(transformInfo);
         }
-      }>
+        }>
         </ViroARImageMarker>
         <ViroBox
           scale={[0.2, 0.2, 0.2]}

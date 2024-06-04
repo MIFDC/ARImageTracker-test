@@ -13,14 +13,15 @@
     "@types/react": "~18.2.79",
     "@viro-community/react-viro": "^2.41.1",
     "expo": "~51.0.6",
+    "expo-barcode-scanner": "~13.0.1",
+    "expo-camera": "~15.0.9",
     "expo-status-bar": "~1.12.1",
+    "gl-matrix": "^3.4.3",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-native": "0.74.1",
     "react-native-web": "~0.19.10",
-    "typescript": "~5.3.3",
-    "expo-camera": "~15.0.9",
-    "expo-barcode-scanner": "~13.0.1"
+    "typescript": "~5.3.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
