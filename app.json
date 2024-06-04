@@ -33,6 +33,12 @@
             "xRMode": "AR"
           }
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "recordAudioAndroid": true
+        }
       ]
     ]
   }
