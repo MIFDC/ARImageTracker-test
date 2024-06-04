@@ -23,17 +23,16 @@ import { Camera } from "expo-camera";
 export default () => {
 
   const image = require('./assets/BarCode/qrcode_www.bing.com.png');
-
   const imageSource = Image.resolveAssetSource(image);
   const imageUrl = imageSource["uri"];
 
   useEffect(() => {
-    console.log("imageUrl:",typeof imageUrl);
+    //console.log("imageUrl:",typeof imageUrl);
     return;
   }, []);
 
-  const [cameraOrientation, setCameraOrientation] = useState(null);
   const [currentCameraOrientation, setCurrentCameraOrientation] = useState(null);
+  const [cameraOrientationFound, setcameraOrientationFound] = useState(null);
   const [hitTestResults, setHitTestResults] = useState(null);
   const [currentBarCodePosition, setCurrentBarCodePosition] = useState(null);
   const [currentBarCodeRotation, setCurrentBarCodeRotation] = useState(null);
@@ -49,50 +48,46 @@ export default () => {
   });
 
 
-  const onCameraARHitHandler = (transform) => {
+  const onCameraTransformHandler = (transform) => {
 
-    const cameraOrientationValue = transform['cameraOrientation'];
-    const hitTestResults = transform['hitTestResults'];
-    //console.log(cameraOrientationValue);
-    setCameraOrientation(cameraOrientationValue);
-    setHitTestResults(hitTestResults);
-    //console.log(hitTestResult);
-
+    const cameraOrientationValue = transform;
+    //console.log(transform);
+    //console.log("cameraOrientationValue:", cameraOrientationValue);
+    setCurrentCameraOrientation(cameraOrientationValue);
   }
 
+useEffect(() => {
+  //console.log("currentCameraOrientation:",currentCameraOrientation);
+  return;
+}, [currentCameraOrientation]);
 
   const scanQRCodeFromImage = async (imagePath) => {
-    try {
+
       const scanResult = await Camera.scanFromURLAsync(imagePath);
       const scanResultnew = scanResult[0];
       const scanResultData = scanResultnew["data"];
       console.log("scanResultData:", scanResultData);
       setScannedResult(scanResultData);
-    }
-    catch (error) {
-      console.error("Error scanning QR code:", error);
-    }
-
+    
   }
 
+  const triggerWhenBarCodeFound=() =>{
+    setcameraOrientationFound(currentCameraOrientation);
+    console.log(currentCameraOrientation)
+  }
 
-  const barCodeImageDetector = (transform) => {
-    console.log("BarCode Found")
+  const onBarCodeFound = (transform) => {
+
     scanQRCodeFromImage(imageUrl);
     const barCodePosition = transform['position'];
     const barCodeRotation = transform['rotation']
     setCurrentBarCodePosition(barCodePosition);
     setCurrentBarCodeRotation(barCodeRotation);
-    setCurrentCameraOrientation(cameraOrientation);
     // console.log(barCodePosition);
     //console.log(cameraOrientation)
+    console.log(transform)
   }
 
-  useEffect(() => {
-    if (currentCameraOrientation !== null) {
-      console.log('currentCameraOrientation:', currentCameraOrientation);
-    }
-  }, [currentCameraOrientation]);
 
   useEffect(() => {
     if (scannedResult !== null) {
@@ -123,11 +118,13 @@ export default () => {
     //console.log("Camera Orientation position: ", cameraOrientation.position);
     //const hitTestResultsPosition = hitTestResults[0];
     //console.log("Hit Test Result", hitTestResultsPosition);
-    //console.log("BarCode Position: ", currentBarCodePosition);
-    //console.log("BarCode Rotation: ", currentBarCodeRotation)
-    console.log(currentCameraOrientation);
-    const distance = calculateDistance(currentCameraOrientation.position, currentBarCodePosition);
-    const direction = calculateVectors(currentCameraOrientation.position, currentBarCodePosition);
+    console.log("Camera Position:", currentCameraOrientation["position"]);
+    console.log("Camera Rotation", currentCameraOrientation["rotation"]);
+    console.log("BarCode Position: ", currentBarCodePosition);
+    console.log("BarCode Rotation: ", currentBarCodeRotation);
+    console.log(cameraOrientationFound);
+    const distance = calculateDistance(currentCameraOrientation["position"], currentBarCodePosition);
+    const direction = calculateVectors(currentCameraOrientation["position"], currentBarCodePosition);
     console.log("distance: ", distance);
     console.log("direction: ", direction);
   }
@@ -153,12 +150,16 @@ export default () => {
 
     return (
       <ViroARScene
-        onCameraARHitTest={(transformInfo) => onCameraARHitHandler(transformInfo)}>
+        onCameraTransformUpdate={(transformInfo) => onCameraTransformHandler(transformInfo)}>
         {/*<ViroText
         text={"Hello World"}
         position={[0, 0, -1]}
         style={styles.helloWorldTextStyle} />*/}
-        <ViroARImageMarker target={"BarCode"} onAnchorFound={(transformInfo) => barCodeImageDetector(transformInfo)}>
+        <ViroARImageMarker target={"BarCode"} onAnchorFound={(transformInfo) => {
+          onBarCodeFound(transformInfo);
+          triggerWhenBarCodeFound();
+        }
+      }>
         </ViroARImageMarker>
         <ViroBox
           scale={[0.2, 0.2, 0.2]}
@@ -169,7 +170,6 @@ export default () => {
       </ViroARScene>
     )
   }
-
 
 
   return (
