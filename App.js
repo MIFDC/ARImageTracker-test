@@ -1,12 +1,14 @@
 import {
   ViroARScene,
   ViroARSceneNavigator,
+  Viro3DSceneNavigator,
   ViroAnimations,
   ViroARImageMarker,
   ViroARTrackingTargets,
   ViroText,
   ViroBox,
-  ViroSphere,
+  Viro3DObject,
+  ViroAmbientLight,
   ViroMaterials,
   ViroOrbitCamera,
   ViroCamera,
@@ -20,17 +22,11 @@ import { StyleSheet, View, Text, TouchableOpacity, Image } from "react-native";
 import { transform } from "typescript";
 import { Camera } from "expo-camera";
 import { mat4, vec3, quat } from 'gl-matrix';
+import {Asset} from 'expo-asset';
+
 
 export default () => {
-
-  const image = require('./assets/BarCode/qrcode_www.bing.com.png');
-  const imageSource = Image.resolveAssetSource(image);
-  const imageUrl = imageSource["uri"];
-
-  useEffect(() => {
-    //console.log("imageUrl:",typeof imageUrl);
-    return;
-  }, []);
+  const imageUrl = "https://img-s-msn-com.akamaized.net/tenant/amp/entityid/BB1msMIy.img";
 
   const [currentCameraOrientation, setCurrentCameraOrientation] = useState(null);
   const [cameraOrientationFound, setCameraOrientationFound] = useState(null);
@@ -39,15 +35,21 @@ export default () => {
   const [currentBarCodeRotation, setCurrentBarCodeRotation] = useState(null);
   const [scannedResult, setScannedResult] = useState(null);
   const [isAnchorFound, setIsAnchorFound] = useState(false);
+  const [objectUri, setObjectUri] = useState(null);
 
-  ViroARTrackingTargets.createTargets({
-    "BarCode": {
-      source: image,
-      orientation: "Up",
-      type: 'Image',
-      physicalWidth: 0.05
-    },
-  });
+  useEffect(() => {
+    const loadAsset = async () => {
+      const asset = Asset.fromModule(require('./assets/Diamond/diamond.obj'));
+      await asset.downloadAsync();
+      setObjectUri(asset.uri);
+    };
+
+    loadAsset();
+  }, []);
+
+  useEffect(() => {
+    console.log(objectUri);
+  }, [objectUri]);
 
 
   const onCameraTransformHandler = (transform) => {
@@ -60,14 +62,14 @@ export default () => {
   }
 
   useEffect(() => {
-    if (isAnchorFound){
+    if (isAnchorFound) {
       setCameraOrientationFound(currentCameraOrientation);
-      console.log("currentCameraOrientation in useEffect:",currentCameraOrientation);
+      console.log("currentCameraOrientation in useEffect:", currentCameraOrientation);
       setIsAnchorFound(false);
     }
 
     return;
-  }, [currentCameraOrientation,isAnchorFound]);
+  }, [currentCameraOrientation, isAnchorFound]);
 
   const scanQRCodeFromImage = async (imagePath) => {
 
@@ -118,20 +120,20 @@ export default () => {
     ];
   }
 
-  // 将度数转换为弧度
-  const degToRad = (deg) => deg * (Math.PI / 180);
+  // rad for calculate
+  const degreeToRadian = (degree) => degree * (Math.PI / 180);
 
-  // 将欧拉角转换为四元数
+  // eula to 4 quad
   const eulerToQuat = (euler) => {
     const q = quat.create();
     quat.fromEuler(q, euler[0], euler[1], euler[2]);
     return q;
   };
 
-  // 创建变换矩阵
+  // generate matrix
   const createTransformationMatrix = (position, rotation) => {
     const translation = vec3.fromValues(...position);
-    const quaternion = eulerToQuat(rotation.map(degToRad));
+    const quaternion = eulerToQuat(rotation.map(degreeToRadian));
 
     const matrix = mat4.create();
     mat4.fromRotationTranslation(matrix, quaternion, translation);
@@ -145,17 +147,16 @@ export default () => {
     const cameraPosition = cameraOrientationFound["position"]
     const cameraRotation = cameraOrientationFound["rotation"]
     //console.log("Camera Orientation position: ", cameraOrientation.position);
-    //const hitTestResultsPosition = hitTestResults[0];
-    //console.log("Hit Test Result", hitTestResultsPosition);
-    console.log("cameraOrientationFound:", cameraOrientationFound);
-    console.log("Camera Position:", cameraPosition);
-    console.log("Camera Rotation", cameraRotation);
-    console.log("BarCode Position: ", currentBarCodePosition);
-    console.log("BarCode Rotation: ", currentBarCodeRotation);
+
+    //console.log("cameraOrientationFound:", cameraOrientationFound);
+    //console.log("Camera Position:", cameraPosition);
+    //console.log("Camera Rotation", cameraRotation);
+    //console.log("BarCode Position: ", currentBarCodePosition);
+    //console.log("BarCode Rotation: ", currentBarCodeRotation);
     const cameraMatrix = createTransformationMatrix(cameraPosition, cameraRotation);
     const barCodeMatrix = createTransformationMatrix(currentBarCodePosition, currentBarCodeRotation);
 
-    // 提取变换后的全局位置
+    // the calculate using eula angle
     const cameraGlobalPosition = vec3.create();
     mat4.getTranslation(cameraGlobalPosition, cameraMatrix);
 
@@ -179,11 +180,7 @@ export default () => {
 
   const InitialScene = () => {
 
-    ViroMaterials.createMaterials({
-      wood: {
-        diffuseTexture: require('./assets/Texture/Wood.jpg')
-      }
-    })
+
     ViroAnimations.registerAnimations({
       loopRotate: {
         duration: 1000,
@@ -207,11 +204,13 @@ export default () => {
         }
         }>
         </ViroARImageMarker>
-        <ViroBox
-          scale={[0.2, 0.2, 0.2]}
-          position={[-1, 0, -1]}
-          materials={["wood"]}
-          animation={{ name: 'loopRotate', loop: true, run: true }}
+        <ViroAmbientLight color="#ffffff" />
+        <Viro3DObject
+          source={objectUri}
+          highAccuracyEvents={true}
+          position={[0, 0, -2]}
+          scale={[1, 1, 1]}
+          type="OBJ"
         />
       </ViroARScene>
     )
@@ -220,7 +219,7 @@ export default () => {
 
   return (
     <View style={styles.mainView}>
-      <ViroARSceneNavigator
+      <Viro3DSceneNavigator
         initialScene={{
           scene: InitialScene
         }}
