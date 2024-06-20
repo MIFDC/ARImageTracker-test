@@ -41,20 +41,16 @@ function App() {
     const asset = await Asset.fromModule(
       require("./assets/Diamond/diamond.obj")
     ).downloadAsync();
-    console.log(asset);
-    // await asset.downloadAsync();
-    // setObjectUri(asset.uri);
+    setObjectUri(asset.uri);
     return asset;
   }
   useEffect(() => {
     const asset = loadAsset();
-    console.log(asset);
-    setObjectUri(asset.uri);
   }, []);
 
-  // useEffect(() => {
-  //   console.log(objectUri);
-  // }, [objectUri]);
+  useEffect(() => {
+    console.log("objectUri in useEffect", objectUri);
+  }, [objectUri]);
 
   const onCameraTransformHandler = (transform) => {
     const cameraOrientationValue = transform;
@@ -99,11 +95,11 @@ function App() {
     // console.log("onBarCodeFound transformInfo Marker", transform)
   };
 
-  // useEffect(() => {
-  //   if (scannedResult !== null) {
-  //     console.log('Scanned Result:', scannedResult);
-  //   }
-  // }, [scannedResult]);
+  useEffect(() => {
+    if (scannedResult !== null) {
+      console.log("Scanned Result:", scannedResult);
+    }
+  }, [scannedResult]);
 
   function calculateDistance(pos1, pos2) {
     const dx = pos1[0] - pos2[0];
