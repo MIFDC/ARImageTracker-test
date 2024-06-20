@@ -25,24 +25,29 @@ if (Platform.OS === 'web') {
 1. Install eas-cli found on expo website
 2. Install JAVA 17
 3. Install ANDROID SDK 
-``` sh
-sudo apt update && sudo apt install android-sdk -y
-```
+Just go to the followin website to download android studio and follow the steps.
+https://developer.android.com/studio/install#64bit-libs
 4. add the following lines to ur ~/.bashrc file
 ``` sh
-export ANDROID_HOME="/usr/lib/android-sdk/"
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export PATH=$JAVA_HOME/bin:$PATH
+export ANDROID_HOME="${HOME}/Android/Sdk/"
 export PATH="${PATH}:${ANDROID_HOME}tools/:${ANDROID_HOME}platform-tools/"
 ```
-5. Run the following code to activate the virtual environment upon startup
+5.  Install NINJA 
+``` sh
+sudo apt update && sudo apt install ninja-build
+```
+
+6. Run the following code to activate the virtual environment upon startup
 ``` sh
 source ~/.bashrc
 ```
-6. If step 3-5 having issues, just go to the followin website to download android studio and follow the steps.
-https://developer.android.com/studio/install#64bit-libs
-
-
-
-
-run:
-npx expo run:android
-Please make sure to install 
+7. Upgrade compatible expo. this will fix all the expo compatible SDKs
+``` sh
+npx expo install --fix
+```
+8. to install other libraries use, this code below will allow for installing compatible libraries to check for deprecation
+``` sh
+npx expo install expo-camera expo-sensors expo-contacts
+```

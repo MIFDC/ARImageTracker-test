@@ -1,34 +1,35 @@
 import {
   ViroARScene,
-  ViroARSceneNavigator,
+  // ViroARSceneNavigator,
   Viro3DSceneNavigator,
   ViroAnimations,
   ViroARImageMarker,
-  ViroARTrackingTargets,
-  ViroText,
-  ViroBox,
+  // ViroARTrackingTargets,
+  // ViroText,
+  // ViroBox,
   Viro3DObject,
   ViroAmbientLight,
-  ViroMaterials,
-  ViroOrbitCamera,
-  ViroCamera,
-  ViroNode,
-  ViroTrackingReason,
-  ViroConstants,
-  ViroTrackingStateConstants,
+  // ViroMaterials,
+  // ViroOrbitCamera,
+  // ViroCamera,
+  // ViroNode,
+  // ViroTrackingReason,
+  // ViroConstants,
+  // ViroTrackingStateConstants,
 } from "@viro-community/react-viro";
 import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Text, TouchableOpacity, Image } from "react-native";
-import { transform } from "typescript";
+// import { transform } from "typescript";
 import { Camera } from "expo-camera";
-import { mat4, vec3, quat } from 'gl-matrix';
-import {Asset} from 'expo-asset';
-
+import { mat4, vec3, quat } from "gl-matrix";
+import { Asset } from "expo-asset";
 
 export default () => {
-  const imageUrl = "https://img-s-msn-com.akamaized.net/tenant/amp/entityid/BB1msMIy.img";
+  const imageUrl =
+    "https://img-s-msn-com.akamaized.net/tenant/amp/entityid/BB1msMIy.img";
 
-  const [currentCameraOrientation, setCurrentCameraOrientation] = useState(null);
+  const [currentCameraOrientation, setCurrentCameraOrientation] =
+    useState(null);
   const [cameraOrientationFound, setCameraOrientationFound] = useState(null);
   const [currentBarCodePosition, setCurrentBarCodePosition] = useState(null);
   const [currentBarCodeRotation, setCurrentBarCodeRotation] = useState(null);
@@ -38,32 +39,35 @@ export default () => {
 
   useEffect(() => {
     const loadAsset = async () => {
-      const asset = Asset.fromModule(require('./assets/Diamond/diamond.obj'));
-      await asset.downloadAsync();
+      const asset = await Asset.fromModule(
+        require("./assets/Diamond/diamond.obj")
+      ).downloadAsync();
+      // await asset.downloadAsync();
       setObjectUri(asset.uri);
     };
 
     loadAsset();
   }, []);
 
-  useEffect(() => {
-    console.log(objectUri);
-  }, [objectUri]);
-
+  // useEffect(() => {
+  //   console.log(objectUri);
+  // }, [objectUri]);
 
   const onCameraTransformHandler = (transform) => {
-
     const cameraOrientationValue = transform;
     //console.log(transform);
     // console.log("cameraOrientationValue:", cameraOrientationValue);
     setCurrentCameraOrientation(cameraOrientationValue);
     // console.log("cameraOrientationValue in onCameraHandler:", cameraOrientationValue);
-  }
+  };
 
   useEffect(() => {
     if (isAnchorFound) {
       setCameraOrientationFound(currentCameraOrientation);
-      console.log("currentCameraOrientation in useEffect:", currentCameraOrientation);
+      console.log(
+        "currentCameraOrientation in useEffect:",
+        currentCameraOrientation
+      );
       setIsAnchorFound(false);
     }
 
@@ -71,38 +75,32 @@ export default () => {
   }, [currentCameraOrientation, isAnchorFound]);
 
   const scanQRCodeFromImage = async (imagePath) => {
-
     const scanResult = await Camera.scanFromURLAsync(imagePath);
     const scanResultnew = scanResult[0];
     const scanResultData = scanResultnew["data"];
     console.log("scanResultData:", scanResultData);
     setScannedResult(scanResultData);
-
-  }
-
+  };
 
   const onBarCodeFoundMarker = (transform) => {
     // console.log("currentCameraOrientation in app", currentCameraOrientation);
     setCameraOrientationFound(currentCameraOrientation);
     scanQRCodeFromImage(imageUrl);
-    const barCodePosition = transform['position'];
-    const barCodeRotation = transform['rotation']
+    const barCodePosition = transform["position"];
+    const barCodeRotation = transform["rotation"];
     setCurrentBarCodePosition(barCodePosition);
     setCurrentBarCodeRotation(barCodeRotation);
     // console.log(barCodePosition);
     //console.log(cameraOrientation)
     setIsAnchorFound(true);
     // console.log("onBarCodeFound transformInfo Marker", transform)
-  }
-
+  };
 
   // useEffect(() => {
   //   if (scannedResult !== null) {
   //     console.log('Scanned Result:', scannedResult);
   //   }
   // }, [scannedResult]);
-
-
 
   function calculateDistance(pos1, pos2) {
     const dx = pos1[0] - pos2[0];
@@ -115,7 +113,7 @@ export default () => {
     return [
       cameraPos[0] - objectPos[0],
       cameraPos[1] - objectPos[1],
-      cameraPos[2] - objectPos[2]
+      cameraPos[2] - objectPos[2],
     ];
   }
 
@@ -140,11 +138,9 @@ export default () => {
     return matrix;
   };
 
-
   const calculateHandler = () => {
-
-    const cameraPosition = cameraOrientationFound["position"]
-    const cameraRotation = cameraOrientationFound["rotation"]
+    const cameraPosition = cameraOrientationFound["position"];
+    const cameraRotation = cameraOrientationFound["rotation"];
     //console.log("Camera Orientation position: ", cameraOrientation.position);
 
     //console.log("cameraOrientationFound:", cameraOrientationFound);
@@ -152,8 +148,14 @@ export default () => {
     //console.log("Camera Rotation", cameraRotation);
     //console.log("BarCode Position: ", currentBarCodePosition);
     //console.log("BarCode Rotation: ", currentBarCodeRotation);
-    const cameraMatrix = createTransformationMatrix(cameraPosition, cameraRotation);
-    const barCodeMatrix = createTransformationMatrix(currentBarCodePosition, currentBarCodeRotation);
+    const cameraMatrix = createTransformationMatrix(
+      cameraPosition,
+      cameraRotation
+    );
+    const barCodeMatrix = createTransformationMatrix(
+      currentBarCodePosition,
+      currentBarCodeRotation
+    );
 
     // the calculate using eula angle
     const cameraGlobalPosition = vec3.create();
@@ -165,81 +167,76 @@ export default () => {
     const accurateVector = vec3.create();
     vec3.subtract(accurateVector, barCodeGlobalPosition, cameraGlobalPosition);
     const accurateDistance = vec3.length(accurateVector);
-    console.log('vector considering rotation:', accurateVector);
-    console.log('distance considering rotation:', accurateDistance);
+    console.log("vector considering rotation:", accurateVector);
+    console.log("distance considering rotation:", accurateDistance);
 
     //distance calculated simply with position
     const distance = calculateDistance(cameraPosition, currentBarCodePosition);
     const direction = calculateVectors(cameraPosition, currentBarCodePosition);
     console.log(" simple distance calculation: ", distance);
     console.log("verctor between camera and barcode: ", direction);
-  }
-
-
+  };
 
   const InitialScene = () => {
-
-
     ViroAnimations.registerAnimations({
       loopRotate: {
         duration: 1000,
         properties: {
-          rotateY: '+=45'
-        }
-      }
-    })
-
+          rotateY: "+=45",
+        },
+      },
+    });
 
     return (
       <ViroARScene
-        onCameraTransformUpdate={(orientationInfo) => onCameraTransformHandler(orientationInfo)}
+        onCameraTransformUpdate={(orientationInfo) =>
+          onCameraTransformHandler(orientationInfo)
+        }
       >
         {/*<ViroText
         text={"Hello World"}
         position={[0, 0, -1]}
         style={styles.helloWorldTextStyle} />*/}
-        <ViroARImageMarker target={"BarCode"} onAnchorFound={(transformInfo) => {
-          onBarCodeFoundMarker(transformInfo);
-        }
-        }>
-        </ViroARImageMarker>
+        <ViroARImageMarker
+          target={"BarCode"}
+          onAnchorFound={(transformInfo) => {
+            onBarCodeFoundMarker(transformInfo);
+          }}
+        ></ViroARImageMarker>
         <ViroAmbientLight color="#ffffff" />
-        <Viro3DObject
-          source={objectUri}
-          highAccuracyEvents={true}
-          position={[0, 0, -2]}
-          scale={[1, 1, 1]}
-          type="OBJ"
-        />
+        {objectUri && (
+          <Viro3DObject
+            source={objectUri}
+            highAccuracyEvents={true}
+            position={[0, 0, -2]}
+            scale={[1, 1, 1]}
+            type="OBJ"
+          />
+        )}
       </ViroARScene>
-    )
-  }
-
+    );
+  };
 
   return (
     <View style={styles.mainView}>
       <Viro3DSceneNavigator
         initialScene={{
-          scene: InitialScene
+          scene: InitialScene,
         }}
-        style={{ flex: 1 }} />
+        style={{ flex: 1 }}
+      />
       <View style={styles.controlView}>
         <TouchableOpacity onPress={() => calculateHandler()}>
           <Text>Calculate the Distance</Text>
         </TouchableOpacity>
       </View>
     </View>
-
   );
-
 };
-
-
-
 
 var styles = StyleSheet.create({
   mainView: {
-    flex: 1
+    flex: 1,
   },
   controlView: {
     height: 100,
@@ -248,7 +245,6 @@ var styles = StyleSheet.create({
     display: "flex",
     flexDirection: "row",
     justifyContent: "center",
-    alignItems: "center"
-  }
-
+    alignItems: "center",
+  },
 });

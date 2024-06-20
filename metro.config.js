@@ -1,39 +1,16 @@
-const { getDefaultConfig } = require('metro-config');
+// Learn more https://docs.expo.io/guides/customizing-metro
+const { getDefaultConfig } = require("expo/metro-config");
 
-module.exports = (async () => {
-  const {
-    resolver: { assetExts, sourceExts},
-  } = await getDefaultConfig();
+/** @type {import('expo/metro-config').MetroConfig} */
+const config = getDefaultConfig(__dirname);
 
-  return {
-    transformer: {
-      assetPlugins: ['metro-transform-worker'],
-      getTransformOptions: async () => ({
-        transform: {
-          experimentalImportSupport: false,
-          inlineRequires: false,
-        },
-      }),
-    },
-    resolver: {
-      assetExts: [
-        ...assetExts,
-        'png',
-        'jpg',
-        'obj',
-        'mtl',
-        'JPG',
-        'vrx',
-        'hdr',
-        'gltf',
-        'glb',
-        'bin',
-        'arobject',
-        'gif',
-      ],
-      sourceExts: [...sourceExts, 'obj']
-    },
-    resetCache: true,
-    maxWorkers: 2, // Adjust based on your CPU cores
-  };
-})();
+config.resolver.assetExts.push(
+  // Adds support for `.obj` files for 3D Objects
+  "obj"
+);
+config.resolver.assetExts.push(
+  // Adds support for `.fbx` files for 3D Objects's metadata
+  "fbx"
+);
+
+module.exports = config;
