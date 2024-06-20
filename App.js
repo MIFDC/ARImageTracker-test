@@ -34,7 +34,7 @@ function InitialScene() {
   const [currentBarCodeRotation, setCurrentBarCodeRotation] = useState(null);
   const [scannedResult, setScannedResult] = useState(null);
   const [isAnchorFound, setIsAnchorFound] = useState(false);
-  const [objectUri, setObjectUri] = useState(null);
+  const [objectUri, setObjectUri] = useState("");
 
   const imageUrl =
     "https://img-s-msn-com.akamaized.net/tenant/amp/entityid/BB1msMIy.img";
@@ -44,11 +44,12 @@ function InitialScene() {
       require("./assets/Diamond/diamond.obj")
     ).downloadAsync();
     console.log(asset);
+
     setObjectUri(asset.uri);
     return asset;
   }
   useEffect(() => {
-    const asset = loadAsset();
+    loadAsset();
   }, []);
 
   useEffect(() => {
@@ -188,38 +189,38 @@ function InitialScene() {
     }
   }
   return (
-    // <ViroARScene
-    //   onTrackingUpdated={this._trackingUpdated}
-    //   onCameraTransformUpdate={(orientationInfo) =>
-    //     onCameraTransformHandler(orientationInfo)
-    //   }
-    // >
-    //   <ViroText text={"Hello World"} position={[0, 0, -1]} />
-    //   <ViroARImageMarker
-    //     target={"BarCode"}
-    //     onAnchorFound={(transformInfo) => {
-    //       onBarCodeFoundMarker(transformInfo);
-    //     }}
-    //   />
-    //   <ViroAmbientLight color="#ffffff" />
-    //   {objectUri && (
-    //     <Viro3DObject
-    //       source={objectUri}
-    //       highAccuracyEvents={true}
-    //       position={[0, 0, -2]}
-    //       scale={[1, 1, 1]}
-    //       type="OBJ"
-    //     />
-    //   )}
-    // </ViroARScene>
-    <ViroARScene onTrackingUpdated={onInitialized}>
-      <ViroText
-        text={text}
-        scale={[0.5, 0.5, 0.5]}
-        position={[0, 0, -1]}
-        style={styles.helloWorldTextStyle}
-      />
+    <ViroARScene
+      onTrackingUpdated={onInitialized}
+      onCameraTransformUpdate={(orientationInfo) =>
+        onCameraTransformHandler(orientationInfo)
+      }
+    >
+      <ViroText text={"Initializing"} position={[0, 0, -1]} />
+      {/* <ViroARImageMarker
+        target={"BarCode"}
+        onAnchorFound={(transformInfo) => {
+          onBarCodeFoundMarker(transformInfo);
+        }}
+      /> */}
+      <ViroAmbientLight color="#ffffff" />
+      {/* {objectUri !== "" && (
+        <Viro3DObject
+          source={objectUri}
+          highAccuracyEvents={true}
+          position={[0, 0, -2]}
+          scale={[1, 1, 1]}
+          type="OBJ"
+        />
+      )} */}
     </ViroARScene>
+    // <ViroARScene onTrackingUpdated={onInitialized}>
+    //   <ViroText
+    //     text={text}
+    //     scale={[0.5, 0.5, 0.5]}
+    //     position={[0, 0, -1]}
+    //     style={styles.helloWorldTextStyle}
+    //   />
+    // </ViroARScene>
   );
 }
 
