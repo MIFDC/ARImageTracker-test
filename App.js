@@ -1,33 +1,30 @@
 import {
   ViroARScene,
-  // ViroARSceneNavigator,
+  ViroARSceneNavigator,
   Viro3DSceneNavigator,
   ViroAnimations,
   ViroARImageMarker,
-  // ViroARTrackingTargets,
-  // ViroText,
+  ViroARTrackingTargets,
+  ViroText,
   // ViroBox,
   Viro3DObject,
   ViroAmbientLight,
-  // ViroMaterials,
-  // ViroOrbitCamera,
-  // ViroCamera,
-  // ViroNode,
-  // ViroTrackingReason,
-  // ViroConstants,
-  // ViroTrackingStateConstants,
+  ViroMaterials,
+  ViroOrbitCamera,
+  ViroCamera,
+  ViroNode,
+  ViroTrackingReason,
+  ViroConstants,
+  ViroTrackingStateConstants,
 } from "@viro-community/react-viro";
 import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Text, TouchableOpacity, Image } from "react-native";
 // import { transform } from "typescript";
-import { Camera } from "expo-camera";
+import { Camera, CameraView } from "expo-camera";
 import { mat4, vec3, quat } from "gl-matrix";
 import { Asset } from "expo-asset";
 
-export default () => {
-  const imageUrl =
-    "https://img-s-msn-com.akamaized.net/tenant/amp/entityid/BB1msMIy.img";
-
+function App() {
   const [currentCameraOrientation, setCurrentCameraOrientation] =
     useState(null);
   const [cameraOrientationFound, setCameraOrientationFound] = useState(null);
@@ -37,16 +34,22 @@ export default () => {
   const [isAnchorFound, setIsAnchorFound] = useState(false);
   const [objectUri, setObjectUri] = useState(null);
 
-  useEffect(() => {
-    const loadAsset = async () => {
-      const asset = await Asset.fromModule(
-        require("./assets/Diamond/diamond.obj")
-      ).downloadAsync();
-      // await asset.downloadAsync();
-      setObjectUri(asset.uri);
-    };
+  const imageUrl =
+    "https://img-s-msn-com.akamaized.net/tenant/amp/entityid/BB1msMIy.img";
 
-    loadAsset();
+  async function loadAsset() {
+    const asset = await Asset.fromModule(
+      require("./assets/Diamond/diamond.obj")
+    ).downloadAsync();
+    console.log(asset);
+    // await asset.downloadAsync();
+    // setObjectUri(asset.uri);
+    return asset;
+  }
+  useEffect(() => {
+    const asset = loadAsset();
+    console.log(asset);
+    setObjectUri(asset.uri);
   }, []);
 
   // useEffect(() => {
@@ -193,16 +196,13 @@ export default () => {
           onCameraTransformHandler(orientationInfo)
         }
       >
-        {/*<ViroText
-        text={"Hello World"}
-        position={[0, 0, -1]}
-        style={styles.helloWorldTextStyle} />*/}
+        <ViroText text={"Hello World"} position={[0, 0, -1]} />
         <ViroARImageMarker
           target={"BarCode"}
           onAnchorFound={(transformInfo) => {
             onBarCodeFoundMarker(transformInfo);
           }}
-        ></ViroARImageMarker>
+        />
         <ViroAmbientLight color="#ffffff" />
         {objectUri && (
           <Viro3DObject
@@ -232,11 +232,13 @@ export default () => {
       </View>
     </View>
   );
-};
+}
 
 var styles = StyleSheet.create({
   mainView: {
-    flex: 1,
+    display: "flex",
+    width: "auto",
+    height: "auto",
   },
   controlView: {
     height: 100,
@@ -248,3 +250,5 @@ var styles = StyleSheet.create({
     alignItems: "center",
   },
 });
+
+export default App;

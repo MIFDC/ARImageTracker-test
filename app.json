@@ -50,7 +50,15 @@
           "recordAudioAndroid": true
         }
       ],
-      "expo-asset"
+      [
+        "expo-asset",
+        {
+          "assets": [
+            "./assets/Diamond/diamond.obj",
+            "./assets/Diamond/diamond.fbx"
+          ]
+        }
+      ]
     ],
     "extra": {
       "eas": {
