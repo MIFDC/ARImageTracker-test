@@ -133,7 +133,7 @@ export default () => {
   // generate matrix
   const createTransformationMatrix = (position, rotation) => {
     const translation = vec3.fromValues(...position);
-    const quaternion = eulerToQuat(rotation.map(degToRad));
+    const quaternion = eulerToQuat(rotation.map(degreeToRadian));
 
     const matrix = mat4.create();
     mat4.fromRotationTranslation(matrix, quaternion, translation);
