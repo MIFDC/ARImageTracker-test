@@ -25,8 +25,7 @@ import { Camera, CameraView } from "expo-camera";
 import { mat4, vec3, quat } from "gl-matrix";
 import { Asset } from "expo-asset";
 
-function InitialScene() {
-  const [text, setText] = useState("Initializing AR...");
+function App() {
   const [currentCameraOrientation, setCurrentCameraOrientation] =
     useState(null);
   const [cameraOrientationFound, setCameraOrientationFound] = useState(null);
@@ -187,102 +186,62 @@ function InitialScene() {
       // Handle loss of tracking
     }
   }
+  const InitialScene = () => {
+    // ViroAnimations.registerAnimations({
+    //   loopRotate: {
+    //     duration: 1000,
+    //     properties: {
+    //       rotateY: "+=45",
+    //     },
+    //   },
+    // });
+
+    return (
+      <ViroARScene
+        onTrackingUpdated={this._trackingUpdated}
+        onCameraTransformUpdate={(orientationInfo) =>
+          onCameraTransformHandler(orientationInfo)
+        }
+      >
+        <ViroText text={"Hello World"} position={[0, 0, -1]} />
+        <ViroARImageMarker
+          target={"BarCode"}
+          onAnchorFound={(transformInfo) => {
+            onBarCodeFoundMarker(transformInfo);
+          }}
+        />
+        <ViroAmbientLight color="#ffffff" />
+        {objectUri && (
+          <Viro3DObject
+            source={objectUri}
+            highAccuracyEvents={true}
+            position={[0, 0, -2]}
+            scale={[1, 1, 1]}
+            type="OBJ"
+          />
+        )}
+      </ViroARScene>
+    );
+  };
+
   return (
-    // <ViroARScene
-    //   onTrackingUpdated={this._trackingUpdated}
-    //   onCameraTransformUpdate={(orientationInfo) =>
-    //     onCameraTransformHandler(orientationInfo)
-    //   }
-    // >
-    //   <ViroText text={"Hello World"} position={[0, 0, -1]} />
-    //   <ViroARImageMarker
-    //     target={"BarCode"}
-    //     onAnchorFound={(transformInfo) => {
-    //       onBarCodeFoundMarker(transformInfo);
-    //     }}
-    //   />
-    //   <ViroAmbientLight color="#ffffff" />
-    //   {objectUri && (
-    //     <Viro3DObject
-    //       source={objectUri}
-    //       highAccuracyEvents={true}
-    //       position={[0, 0, -2]}
-    //       scale={[1, 1, 1]}
-    //       type="OBJ"
-    //     />
-    //   )}
-    // </ViroARScene>
-    <ViroARScene onTrackingUpdated={onInitialized}>
-      <ViroText
-        text={text}
-        scale={[0.5, 0.5, 0.5]}
-        position={[0, 0, -1]}
-        style={styles.helloWorldTextStyle}
+    <View>
+      <ViroARSceneNavigator
+        initialScene={{
+          scene: InitialScene,
+        }}
+        // style={{ flex: 1 }}
       />
-    </ViroARScene>
+      <View style={styles.controlView}>
+        <TouchableOpacity onPress={() => calculateHandler()}>
+          <Text>Calculate the Distance</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
-
-export default function App() {
-  return (
-    <ViroARSceneNavigator
-      initialScene={{
-        scene: InitialScene,
-      }}
-      style={{ flex: 1 }}
-    />
-    // <View style={styles.controlView}>
-    //   <TouchableOpacity onPress={() => calculateHandler()}>
-    //     <Text>Calculate the Distance</Text>
-    //   </TouchableOpacity>
-    // </View>
-  );
-}
-
-const HelloWorldSceneAR = () => {
-  const [text, setText] = useState("Initializing AR...");
-
-  function onInitialized(state, reason) {
-    console.log("onInitialized", state, reason);
-    if (state === ViroTrackingStateConstants.TRACKING_NORMAL) {
-      setText("Hello World!");
-    } else if (state === ViroTrackingStateConstants.TRACKING_UNAVAILABLE) {
-      // Handle loss of tracking
-    }
-  }
-
-  return (
-    <ViroARScene onTrackingUpdated={onInitialized}>
-      <ViroText
-        text={text}
-        scale={[0.5, 0.5, 0.5]}
-        position={[0, 0, -1]}
-        style={styles.helloWorldTextStyle}
-      />
-    </ViroARScene>
-  );
-};
-// export default () => {
-//   return (
-//     <ViroARSceneNavigator
-//       autofocus={true}
-//       initialScene={{
-//         scene: HelloWorldSceneAR,
-//       }}
-//       style={styles.f1}
-//     />
-//   );
-// };
 
 var styles = StyleSheet.create({
-  f1: { flex: 1 },
-  helloWorldTextStyle: {
-    fontFamily: "Arial",
-    fontSize: 30,
-    color: "#ffffff",
-    textAlignVertical: "center",
-    textAlign: "center",
-  },
   mainView: {
     // display: "flex",
     // width: "auto",
@@ -299,3 +258,5 @@ var styles = StyleSheet.create({
     alignItems: "center",
   },
 });
+
+export default App;

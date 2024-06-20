@@ -51,3 +51,8 @@ npx expo install --fix
 ``` sh
 npx expo install expo-camera expo-sensors expo-contacts
 ```
+
+9. to clean ur setup from root project
+``` sh
+cd android && ./gradlew clean && cd .. && npx expo run:android
+```
