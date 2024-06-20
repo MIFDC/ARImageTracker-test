@@ -58,7 +58,7 @@ function InitialScene() {
 
   const onCameraTransformHandler = (transform) => {
     const cameraOrientationValue = transform;
-    //console.log(transform);
+    console.log(transform);
     // console.log("cameraOrientationValue:", cameraOrientationValue);
     setCurrentCameraOrientation(cameraOrientationValue);
     // console.log("cameraOrientationValue in onCameraHandler:", cameraOrientationValue);
