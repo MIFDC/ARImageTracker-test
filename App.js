@@ -30,7 +30,6 @@ export default () => {
 
   const [currentCameraOrientation, setCurrentCameraOrientation] = useState(null);
   const [cameraOrientationFound, setCameraOrientationFound] = useState(null);
-  const [hitTestResults, setHitTestResults] = useState(null);
   const [currentBarCodePosition, setCurrentBarCodePosition] = useState(null);
   const [currentBarCodeRotation, setCurrentBarCodeRotation] = useState(null);
   const [scannedResult, setScannedResult] = useState(null);
@@ -172,7 +171,7 @@ export default () => {
     //distance calculated simply with position
     const distance = calculateDistance(cameraPosition, currentBarCodePosition);
     const direction = calculateVectors(cameraPosition, currentBarCodePosition);
-    console.log("distance: ", distance);
+    console.log(" simple distance calculation: ", distance);
     console.log("verctor between camera and barcode: ", direction);
   }
 
