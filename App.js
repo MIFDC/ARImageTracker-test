@@ -16,7 +16,7 @@ import {
   ViroTrackingReason,
   ViroConstants,
   ViroTrackingStateConstants,
-} from "@viro-community/react-viro";
+} from "@reactvision/react-viro";
 import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Text, TouchableOpacity, Image } from "react-native";
 // import { transform } from "typescript";
@@ -41,6 +41,7 @@ function App() {
     const asset = await Asset.fromModule(
       require("./assets/Diamond/diamond.obj")
     ).downloadAsync();
+    console.log(asset);
     setObjectUri(asset.uri);
     return asset;
   }
@@ -235,6 +236,7 @@ var styles = StyleSheet.create({
     display: "flex",
     width: "auto",
     height: "auto",
+    // flex: 1, this attribute causing things to crash for some reason.
   },
   controlView: {
     height: 100,

@@ -37,7 +37,7 @@
     },
     "plugins": [
       [
-        "@viro-community/react-viro",
+        "@reactvision/react-viro",
         {
           "android": {
             "xRMode": "AR"
