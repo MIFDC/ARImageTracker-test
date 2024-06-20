@@ -30,7 +30,6 @@ export default () => {
 
   const [currentCameraOrientation, setCurrentCameraOrientation] = useState(null);
   const [cameraOrientationFound, setCameraOrientationFound] = useState(null);
-  const [hitTestResults, setHitTestResults] = useState(null);
   const [currentBarCodePosition, setCurrentBarCodePosition] = useState(null);
   const [currentBarCodeRotation, setCurrentBarCodeRotation] = useState(null);
   const [scannedResult, setScannedResult] = useState(null);
