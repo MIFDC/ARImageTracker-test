@@ -171,7 +171,7 @@ export default () => {
     //distance calculated simply with position
     const distance = calculateDistance(cameraPosition, currentBarCodePosition);
     const direction = calculateVectors(cameraPosition, currentBarCodePosition);
-    console.log("distance: ", distance);
+    console.log(" simple distance calculation: ", distance);
     console.log("verctor between camera and barcode: ", direction);
   }
 
