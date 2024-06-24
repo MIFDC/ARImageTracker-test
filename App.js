@@ -25,7 +25,9 @@ import { Camera, CameraView } from "expo-camera";
 import { mat4, vec3, quat } from "gl-matrix";
 import { Asset } from "expo-asset";
 
-function InitialScene() {
+import image from './assets/BarCode/qrcode_www.bing.com.png'
+
+export default () => {
   const [text, setText] = useState("Initializing AR...");
   const [currentCameraOrientation, setCurrentCameraOrientation] =
     useState(null);
@@ -36,29 +38,28 @@ function InitialScene() {
   const [isAnchorFound, setIsAnchorFound] = useState(false);
   const [objectUri, setObjectUri] = useState("");
 
-  const imageUrl =
-    "https://img-s-msn-com.akamaized.net/tenant/amp/entityid/BB1msMIy.img";
+  const imageSource = Image.resolveAssetSource(image);
+  const imageUrl = imageSource["uri"];
 
-  async function loadAsset() {
-    const asset = await Asset.fromModule(
-      require("./assets/Diamond/diamond.obj")
-    ).downloadAsync();
-    console.log(asset);
+  ViroARTrackingTargets.createTargets({
+    "BarCode": {
+      source: image,
+      orientation: "Up",
+      type: 'Image',
+      physicalWidth: 0.20
+    },
+  });
 
-    setObjectUri(asset.uri);
-    return asset;
-  }
-  useEffect(() => {
-    loadAsset();
-  }, []);
+  ViroMaterials.createMaterials({
+    wood: {
+      diffuseTexture: require('./assets/Texture/Wood.jpg')
+    }
+  })
 
-  useEffect(() => {
-    console.log("objectUri in useEffect", objectUri);
-  }, [objectUri]);
 
   const onCameraTransformHandler = (transform) => {
     const cameraOrientationValue = transform;
-    console.log(transform);
+    //console.log(transform);
     // console.log("cameraOrientationValue:", cameraOrientationValue);
     setCurrentCameraOrientation(cameraOrientationValue);
     // console.log("cameraOrientationValue in onCameraHandler:", cameraOrientationValue);
@@ -93,7 +94,7 @@ function InitialScene() {
     const barCodeRotation = transform["rotation"];
     setCurrentBarCodePosition(barCodePosition);
     setCurrentBarCodeRotation(barCodeRotation);
-    // console.log(barCodePosition);
+    console.log("barcodePosition:", barCodePosition);
     //console.log(cameraOrientation)
     setIsAnchorFound(true);
     // console.log("onBarCodeFound transformInfo Marker", transform)
@@ -160,109 +161,74 @@ function InitialScene() {
       currentBarCodeRotation
     );
 
-    // the calculate using eula angle
-    const cameraGlobalPosition = vec3.create();
-    mat4.getTranslation(cameraGlobalPosition, cameraMatrix);
+    // the calculate using rotation
+    const cameraTranslationPosition = vec3.create();
+    mat4.getTranslation(cameraTranslationPosition, cameraMatrix);
 
-    const barCodeGlobalPosition = vec3.create();
-    mat4.getTranslation(barCodeGlobalPosition, barCodeMatrix);
+    const barCodeTranslationPosition = vec3.create();
+    mat4.getTranslation(barCodeTranslationPosition, barCodeMatrix);
 
     const accurateVector = vec3.create();
-    vec3.subtract(accurateVector, barCodeGlobalPosition, cameraGlobalPosition);
+    vec3.subtract(accurateVector, barCodeTranslationPosition, cameraTranslationPosition);
     const accurateDistance = vec3.length(accurateVector);
-    console.log("vector considering rotation:", accurateVector);
+    console.log("vector: ", accurateVector);
     console.log("distance considering rotation:", accurateDistance);
 
-    //distance calculated simply with position
-    const distance = calculateDistance(cameraPosition, currentBarCodePosition);
-    const direction = calculateVectors(cameraPosition, currentBarCodePosition);
-    console.log(" simple distance calculation: ", distance);
-    console.log("verctor between camera and barcode: ", direction);
   };
 
-  function onInitialized(state, reason) {
-    console.log("onInitialized", state, reason);
-    if (state === ViroTrackingStateConstants.TRACKING_NORMAL) {
-      setText("Hello World!");
-    } else if (state === ViroTrackingStateConstants.TRACKING_UNAVAILABLE) {
-      // Handle loss of tracking
-    }
-  }
-  return (
-    <ViroARScene
-      onTrackingUpdated={onInitialized}
-      onCameraTransformUpdate={(orientationInfo) =>
-        onCameraTransformHandler(orientationInfo)
-      }
-    >
-      <ViroText text={"Initializing"} position={[0, 0, -1]} />
-      {/* <ViroARImageMarker
-        target={"BarCode"}
-        onAnchorFound={(transformInfo) => {
-          onBarCodeFoundMarker(transformInfo);
-        }}
-      /> */}
-      <ViroAmbientLight color="#ffffff" />
-      {/* {objectUri !== "" && (
+  const initialScene = () => {
+    return (
+      <ViroARScene
+        onCameraTransformUpdate={(orientationInfo) =>
+          onCameraTransformHandler(orientationInfo)
+        }
+      >
+        <ViroARImageMarker
+          target={"BarCode"}
+          onAnchorFound={(transformInfo) => {
+            onBarCodeFoundMarker(transformInfo);
+          }}
+        />
+        <ViroAmbientLight color="#ffffff" />
         <Viro3DObject
-          source={objectUri}
+          source={require("./assets/Diamond/diamond.obj")}
+          resources={[
+            require('./assets/Diamond/diamond.fbx'),
+          ]}
+          materials={["wood"]}
           highAccuracyEvents={true}
-          position={[0, 0, -2]}
-          scale={[1, 1, 1]}
+          position={[0, 0, -1]}
+          scale={[0.2, 0.2, 0.2]}
           type="OBJ"
         />
-      )} */}
-    </ViroARScene>
-    // <ViroARScene onTrackingUpdated={onInitialized}>
-    //   <ViroText
-    //     text={text}
-    //     scale={[0.5, 0.5, 0.5]}
-    //     position={[0, 0, -1]}
-    //     style={styles.helloWorldTextStyle}
-    //   />
-    // </ViroARScene>
-  );
-}
-
-export default function App() {
-  return (
-    <ViroARSceneNavigator
-      initialScene={{
-        scene: InitialScene,
-      }}
-      style={{ flex: 1 }}
-    />
-    // <View style={styles.controlView}>
-    //   <TouchableOpacity onPress={() => calculateHandler()}>
-    //     <Text>Calculate the Distance</Text>
-    //   </TouchableOpacity>
-    // </View>
-  );
-}
-
-const HelloWorldSceneAR = () => {
-  const [text, setText] = useState("Initializing AR...");
-
-  function onInitialized(state, reason) {
-    console.log("onInitialized", state, reason);
-    if (state === ViroTrackingStateConstants.TRACKING_NORMAL) {
-      setText("Hello World!");
-    } else if (state === ViroTrackingStateConstants.TRACKING_UNAVAILABLE) {
-      // Handle loss of tracking
-    }
+      </ViroARScene>
+      // <ViroARScene onTrackingUpdated={onInitialized}>
+      //   <ViroText
+      //     text={text}
+      //     scale={[0.5, 0.5, 0.5]}
+      //     position={[0, 0, -1]}
+      //     style={styles.helloWorldTextStyle}
+      //   />
+      // </ViroARScene>
+    );
   }
 
   return (
-    <ViroARScene onTrackingUpdated={onInitialized}>
-      <ViroText
-        text={text}
-        scale={[0.5, 0.5, 0.5]}
-        position={[0, 0, -1]}
-        style={styles.helloWorldTextStyle}
+    <View style={styles.mainView}>
+      <ViroARSceneNavigator
+        initialScene={{
+          scene: initialScene,
+        }}
+        style={{ flex: 1 }}
       />
-    </ViroARScene>
+      <View style={styles.controlView}>
+        <TouchableOpacity onPress={() => calculateHandler()}>
+          <Text>Calculate the Distance</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
-};
+}
 // export default () => {
 //   return (
 //     <ViroARSceneNavigator
@@ -285,10 +251,10 @@ var styles = StyleSheet.create({
     textAlign: "center",
   },
   mainView: {
-    // display: "flex",
-    // width: "auto",
-    // height: "auto",
-    // flex: 1,
+    display: "flex",
+    width: "auto",
+    height: "auto",
+    flex: 1,
   },
   controlView: {
     height: 100,
