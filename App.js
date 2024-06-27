@@ -215,7 +215,7 @@ export default () => {
   return (
     <View style={styles.mainView}>
       <ViroARSceneNavigator
-        viroAppProps={{ isObjectDisplayed, objectDisplayedPosition }}
+        // viroAppProps={{ isObjectDisplayed, objectDisplayedPosition }}
         initialScene={{
           scene: initialScene,
         }}
