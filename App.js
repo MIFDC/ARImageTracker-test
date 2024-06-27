@@ -29,14 +29,16 @@ import image from './assets/BarCode/qrcode_www.bing.com.png'
 
 export default () => {
   const [text, setText] = useState("Initializing AR...");
-  const [currentCameraOrientation, setCurrentCameraOrientation] =
-    useState(null);
-  const [cameraOrientationFound, setCameraOrientationFound] = useState(null);
+  const [currentCameraOrientation, setCurrentCameraOrientation] = useState(null);
   const [currentBarCodePosition, setCurrentBarCodePosition] = useState(null);
   const [currentBarCodeRotation, setCurrentBarCodeRotation] = useState(null);
   const [scannedResult, setScannedResult] = useState(null);
   const [isAnchorFound, setIsAnchorFound] = useState(false);
-  const [objectUri, setObjectUri] = useState("");
+
+  const [isObjectDisplayed, setIsObjectDisplayed] = useState(false);
+  const [barcodeGlobalPosition, setBarcodeGlobalPosition] = useState([0, 0, 0]);
+  const [objectGlobalPosition, setObjectGlobalPosition] = useState([0, 0, 0]);
+  const [objectDisplayedPosition, setObjectDisplayedPosition] = useState([0, 0, 0]);
 
   const imageSource = Image.resolveAssetSource(image);
   const imageUrl = imageSource["uri"];
@@ -46,7 +48,7 @@ export default () => {
       source: image,
       orientation: "Up",
       type: 'Image',
-      physicalWidth: 0.20
+      physicalWidth: 0.06
     },
   });
 
@@ -67,12 +69,13 @@ export default () => {
 
   useEffect(() => {
     if (isAnchorFound) {
-      setCameraOrientationFound(currentCameraOrientation);
       console.log(
         "currentCameraOrientation in useEffect:",
         currentCameraOrientation
       );
       setIsAnchorFound(false);
+      calculateHandler();
+      toggleObjectStatus();
     }
 
     return;
@@ -88,7 +91,6 @@ export default () => {
 
   const onBarCodeFoundMarker = (transform) => {
     // console.log("currentCameraOrientation in app", currentCameraOrientation);
-    setCameraOrientationFound(currentCameraOrientation);
     scanQRCodeFromImage(imageUrl);
     const barCodePosition = transform["position"];
     const barCodeRotation = transform["rotation"];
@@ -97,29 +99,10 @@ export default () => {
     console.log("barcodePosition:", barCodePosition);
     //console.log(cameraOrientation)
     setIsAnchorFound(true);
+    setBarcodeGlobalPosition([100, 100, 2]);
+    setObjectGlobalPosition([100, 100, 0]);
     // console.log("onBarCodeFound transformInfo Marker", transform)
   };
-
-  useEffect(() => {
-    if (scannedResult !== null) {
-      console.log("Scanned Result:", scannedResult);
-    }
-  }, [scannedResult]);
-
-  function calculateDistance(pos1, pos2) {
-    const dx = pos1[0] - pos2[0];
-    const dy = pos1[1] - pos2[1];
-    const dz = pos1[2] - pos2[2];
-    return Math.sqrt(dx * dx + dy * dy + dz * dz);
-  }
-
-  function calculateVectors(cameraPos, objectPos) {
-    return [
-      cameraPos[0] - objectPos[0],
-      cameraPos[1] - objectPos[1],
-      cameraPos[2] - objectPos[2],
-    ];
-  }
 
   // rad for calculate
   const degreeToRadian = (degree) => degree * (Math.PI / 180);
@@ -143,8 +126,8 @@ export default () => {
   };
 
   const calculateHandler = () => {
-    const cameraPosition = cameraOrientationFound["position"];
-    const cameraRotation = cameraOrientationFound["rotation"];
+    const cameraPosition = currentCameraOrientation["position"];
+    const cameraRotation = currentCameraOrientation["rotation"];
     //console.log("Camera Orientation position: ", cameraOrientation.position);
 
     //console.log("cameraOrientationFound:", cameraOrientationFound);
@@ -169,12 +152,28 @@ export default () => {
     mat4.getTranslation(barCodeTranslationPosition, barCodeMatrix);
 
     const accurateVector = vec3.create();
-    vec3.subtract(accurateVector, barCodeTranslationPosition, cameraTranslationPosition);
+    vec3.subtract(accurateVector, cameraTranslationPosition, barCodeTranslationPosition);
     const accurateDistance = vec3.length(accurateVector);
     console.log("vector: ", accurateVector);
     console.log("distance considering rotation:", accurateDistance);
 
+
+    const objectToBarcodeVector = vec3.create();
+    vec3.subtract(objectToBarcodeVector, objectGlobalPosition, barcodeGlobalPosition);
+    const objectCurrentDisplayedPosition = vec3.create();
+    vec3.add(objectCurrentDisplayedPosition, currentBarCodePosition, objectToBarcodeVector);
+    setObjectDisplayedPosition(objectCurrentDisplayedPosition);
+    console.log("objectCurrentDisplayedPosition: ", objectCurrentDisplayedPosition);
+
   };
+
+  const toggleObjectStatus = () => {
+    setIsObjectDisplayed(true);
+  }
+
+  useEffect(() => {
+    if (isObjectDisplayed) { console.log("objectDisplayedPosition: ", objectDisplayedPosition) }
+  }, [objectDisplayedPosition])
 
   const initialScene = () => {
     return (
@@ -190,17 +189,17 @@ export default () => {
           }}
         />
         <ViroAmbientLight color="#ffffff" />
-        <Viro3DObject
+        {isObjectDisplayed && (<Viro3DObject
           source={require("./assets/Diamond/diamond.obj")}
           resources={[
             require('./assets/Diamond/diamond.fbx'),
           ]}
           materials={["wood"]}
           highAccuracyEvents={true}
-          position={[0, 0, -1]}
+          position={objectDisplayedPosition}
           scale={[0.2, 0.2, 0.2]}
           type="OBJ"
-        />
+        />)}
       </ViroARScene>
       // <ViroARScene onTrackingUpdated={onInitialized}>
       //   <ViroText
@@ -216,6 +215,7 @@ export default () => {
   return (
     <View style={styles.mainView}>
       <ViroARSceneNavigator
+        viroAppProps={{ isObjectDisplayed, objectDisplayedPosition }}
         initialScene={{
           scene: initialScene,
         }}
