@@ -38,7 +38,7 @@ export default () => {
   const [isObjectDisplayed, setIsObjectDisplayed] = useState(false);
   const [barcodeGlobalPosition, setBarcodeGlobalPosition] = useState([0, 0, 0]);
   const [objectGlobalPosition, setObjectGlobalPosition] = useState([0, 0, 0]);
-  const [objectDisplayedPosition, setObjectDisplayedPosition] = useState([0, 0, 0]);
+  const [objectDisplayedPosition, setObjectDisplayedPosition] = useState(null);
 
   const imageSource = Image.resolveAssetSource(image);
   const imageUrl = imageSource["uri"];
@@ -73,9 +73,8 @@ export default () => {
         "currentCameraOrientation in useEffect:",
         currentCameraOrientation
       );
-      setIsAnchorFound(false);
       calculateHandler();
-      toggleObjectStatus();
+      setIsAnchorFound(false);
     }
 
     return;
@@ -164,18 +163,20 @@ export default () => {
     vec3.add(objectCurrentDisplayedPosition, currentBarCodePosition, objectToBarcodeVector);
     setObjectDisplayedPosition(objectCurrentDisplayedPosition);
     console.log("objectCurrentDisplayedPosition: ", objectCurrentDisplayedPosition);
+    setIsObjectDisplayed(true);
 
   };
 
-  const toggleObjectStatus = () => {
-    setIsObjectDisplayed(true);
-  }
+  // const toggleObjectStatus = () => {
+  //   setIsObjectDisplayed(true);
+  // }
 
   useEffect(() => {
-    if (isObjectDisplayed) { console.log("objectDisplayedPosition: ", objectDisplayedPosition) }
+    if (isObjectDisplayed && objectDisplayedPosition != null) { console.log("objectDisplayedPosition: ", objectDisplayedPosition) }
   }, [objectDisplayedPosition])
 
-  const initialScene = () => {
+  const initialScene = (props) => {
+
     return (
       <ViroARScene
         onCameraTransformUpdate={(orientationInfo) =>
@@ -187,19 +188,21 @@ export default () => {
           onAnchorFound={(transformInfo) => {
             onBarCodeFoundMarker(transformInfo);
           }}
-        />
-        <ViroAmbientLight color="#ffffff" />
-        {isObjectDisplayed && (<Viro3DObject
-          source={require("./assets/Diamond/diamond.obj")}
-          resources={[
-            require('./assets/Diamond/diamond.fbx'),
-          ]}
-          materials={["wood"]}
-          highAccuracyEvents={true}
-          position={objectDisplayedPosition}
-          scale={[0.2, 0.2, 0.2]}
-          type="OBJ"
-        />)}
+        >
+          <ViroAmbientLight color="#ffffff" />
+          <Viro3DObject
+            source={require("./assets/Diamond/diamond.obj")}
+            resources={[
+              require('./assets/Diamond/diamond.fbx'),
+            ]}
+            materials={["wood"]}
+            highAccuracyEvents={true}
+            position={objectDisplayedPosition}
+            scale={[0.2, 0.2, 0.2]}
+            type="OBJ"
+          />
+        </ViroARImageMarker>
+
       </ViroARScene>
       // <ViroARScene onTrackingUpdated={onInitialized}>
       //   <ViroText
@@ -209,13 +212,12 @@ export default () => {
       //     style={styles.helloWorldTextStyle}
       //   />
       // </ViroARScene>
-    );
+    )
   }
 
   return (
     <View style={styles.mainView}>
       <ViroARSceneNavigator
-        // viroAppProps={{ isObjectDisplayed, objectDisplayedPosition }}
         initialScene={{
           scene: initialScene,
         }}
