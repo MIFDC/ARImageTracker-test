@@ -24,8 +24,10 @@ import { StyleSheet, View, Text, TouchableOpacity, Image } from "react-native";
 import { Camera, CameraView } from "expo-camera";
 import { mat4, vec3, quat } from "gl-matrix";
 import { Asset } from "expo-asset";
+import * as math from 'mathjs';
 
 import image from './assets/BarCode/qrcode_www.bing.com.png'
+import { CameraOrientation } from "expo-camera/build/legacy/Camera.types";
 
 export default () => {
   const [text, setText] = useState("Initializing AR...");
@@ -36,9 +38,10 @@ export default () => {
   const [isAnchorFound, setIsAnchorFound] = useState(false);
 
   const [isObjectDisplayed, setIsObjectDisplayed] = useState(false);
-  const [barcodeGlobalPosition, setBarcodeGlobalPosition] = useState([0, 0, 0]);
+  const [barCodeGlobalPosition, setBarCodeGlobalPosition] = useState([0, 0, 0]);
   const [objectGlobalPosition, setObjectGlobalPosition] = useState([0, 0, 0]);
   const [objectDisplayedPosition, setObjectDisplayedPosition] = useState(null);
+  
 
   const imageSource = Image.resolveAssetSource(image);
   const imageUrl = imageSource["uri"];
@@ -48,7 +51,7 @@ export default () => {
       source: image,
       orientation: "Up",
       type: 'Image',
-      physicalWidth: 0.06
+      physicalWidth: 0.10
     },
   });
 
@@ -62,23 +65,19 @@ export default () => {
   const onCameraTransformHandler = (transform) => {
     const cameraOrientationValue = transform;
     //console.log(transform);
-    // console.log("cameraOrientationValue:", cameraOrientationValue);
+    //console.log("cameraOrientationValue:", cameraOrientationValue);
     setCurrentCameraOrientation(cameraOrientationValue);
-    // console.log("cameraOrientationValue in onCameraHandler:", cameraOrientationValue);
   };
+  
+  function getBarcodeGlobalCoordinates() {
+    return [0, 0, 0]
+  }
 
-  useEffect(() => {
-    if (isAnchorFound) {
-      console.log(
-        "currentCameraOrientation in useEffect:",
-        currentCameraOrientation
-      );
-      calculateHandler();
-      setIsAnchorFound(false);
-    }
+  function getNonComplianceGlobalCoordinates() {
+    return [[0, 0, -1], [1, 0, 0]]
+  }
 
-    return;
-  }, [currentCameraOrientation, isAnchorFound]);
+
 
   const scanQRCodeFromImage = async (imagePath) => {
     const scanResult = await Camera.scanFromURLAsync(imagePath);
@@ -98,8 +97,10 @@ export default () => {
     console.log("barcodePosition:", barCodePosition);
     //console.log(cameraOrientation)
     setIsAnchorFound(true);
-    setBarcodeGlobalPosition([100, 100, 2]);
-    setObjectGlobalPosition([100, 100, 0]);
+    const barCodeGlobalCoordinates = getBarcodeGlobalCoordinates();
+    const listOfNonComplianceCoordinates = getNonComplianceGlobalCoordinates();
+    setBarCodeGlobalPosition(barCodeGlobalCoordinates);
+    setObjectGlobalPosition(listOfNonComplianceCoordinates[0]);
     // console.log("onBarCodeFound transformInfo Marker", transform)
   };
 
@@ -124,6 +125,76 @@ export default () => {
     return matrix;
   };
 
+  const normalize = (vector) => {
+    const out = vec3.create();
+    vec3.normalize(out, vector);
+    return out;
+  };
+
+  // 计算仿射变换矩阵的函数
+  const calculateAffineTransformation = (localMarkerCoords, globalMarkerCoords, localToMarkerVector, globalToMarkerVector) => {
+    const localDirVector = normalize(localToMarkerVector);
+    const globalDirVector = normalize(globalToMarkerVector);
+
+    //calculate cross product
+    const crossProduct = vec3.create();
+    vec3.cross(crossProduct, localDirVector, globalDirVector);
+
+    const s = vec3.length(crossProduct);
+
+    //calculate dot product
+    const dotProduct = vec3.dot(localDirVector, globalDirVector);
+
+    const mx = mat4.fromValues(
+      0, -crossProduct[2], crossProduct[1], 0,
+      crossProduct[2], 0, -crossProduct[0], 0,
+      -crossProduct[1], crossProduct[0], 0, 0,
+      0, 0, 0, 1
+    );
+
+    const mx2 = mat4.create();
+    mat4.multiply(mx2, mx, mx);
+
+    const rotationMatrix = mat4.create();
+    mat4.identity(rotationMatrix);        
+    mat4.add(rotationMatrix, rotationMatrix, mx);
+
+    console.log("rotationMatrix: ", rotationMatrix)
+
+    //apply rotation martrix to the local coordinates of Barcode
+    const rotatedLocalMarkerCoords = vec3.create();
+    vec3.transformMat4(rotatedLocalMarkerCoords, localMarkerCoords, rotationMatrix);
+
+    //calculate translation vector
+    const translationVector = vec3.create();
+    vec3.sub(translationVector, globalMarkerCoords, rotatedLocalMarkerCoords);
+
+    //combine translation vector and rotation martrix to get the translation martrix
+    const affineTransformationMatrix = mat4.create();
+    mat4.copy(affineTransformationMatrix, rotationMatrix);
+    affineTransformationMatrix[12] = translationVector[0];
+    affineTransformationMatrix[13] = translationVector[1];
+    affineTransformationMatrix[14] = translationVector[2];
+
+    return affineTransformationMatrix;
+  };
+
+
+  // 将点从全局坐标系转换到局部坐标系的函数
+  const transformGlobalToLocal = (point, affineTransformationMatrix) => {
+    const inverseMatrix = mat4.create();
+    //invert the transformation martriex
+    mat4.invert(inverseMatrix, affineTransformationMatrix);
+    console.log("inverseMatrix:", inverseMatrix)
+
+    const pointHomogeneous = vec3.fromValues(point[0], point[1], point[2]);
+    console.log("pointHomogenious", pointHomogeneous)
+    const transformedPointHomogeneous = vec3.create();
+    vec3.transformMat4(transformedPointHomogeneous, pointHomogeneous, inverseMatrix);
+    return transformedPointHomogeneous;
+  };
+
+
   const calculateHandler = () => {
     const cameraPosition = currentCameraOrientation["position"];
     const cameraRotation = currentCameraOrientation["rotation"];
@@ -133,7 +204,7 @@ export default () => {
     //console.log("Camera Position:", cameraPosition);
     //console.log("Camera Rotation", cameraRotation);
     //console.log("BarCode Position: ", currentBarCodePosition);
-    //console.log("BarCode Rotation: ", currentBarCodeRotation);
+    console.log("BarCode Rotation: ", currentBarCodeRotation);
     const cameraMatrix = createTransformationMatrix(
       cameraPosition,
       cameraRotation
@@ -149,34 +220,45 @@ export default () => {
 
     const barCodeTranslationPosition = vec3.create();
     mat4.getTranslation(barCodeTranslationPosition, barCodeMatrix);
-
+        
     const accurateVector = vec3.create();
     vec3.subtract(accurateVector, cameraTranslationPosition, barCodeTranslationPosition);
     const accurateDistance = vec3.length(accurateVector);
     console.log("vector: ", accurateVector);
     console.log("distance considering rotation:", accurateDistance);
 
-
-    const objectToBarcodeVector = vec3.create();
-    vec3.subtract(objectToBarcodeVector, objectGlobalPosition, barcodeGlobalPosition);
-    const objectCurrentDisplayedPosition = vec3.create();
-    vec3.add(objectCurrentDisplayedPosition, currentBarCodePosition, objectToBarcodeVector);
+    const transforamtionMartix = calculateAffineTransformation(barCodeTranslationPosition, barCodeGlobalPosition, barCodeTranslationPosition, barCodeGlobalPosition)
+    console.log("transforamtionMartix", transforamtionMartix)
+    const objectCurrentDisplayedPosition = transformGlobalToLocal(objectGlobalPosition, transforamtionMartix)
     setObjectDisplayedPosition(objectCurrentDisplayedPosition);
-    console.log("objectCurrentDisplayedPosition: ", objectCurrentDisplayedPosition);
     setIsObjectDisplayed(true);
-
   };
 
   // const toggleObjectStatus = () => {
   //   setIsObjectDisplayed(true);
   // }
+  useEffect(() => {
+    if (isAnchorFound) {
+      //console.log("currentCameraOrientation in useEffect:",currentCameraOrientation);
+      calculateHandler();
+      setIsAnchorFound(false);
+    }
+
+    return;
+  }, [currentCameraOrientation, isAnchorFound]);
 
   useEffect(() => {
-    if (isObjectDisplayed && objectDisplayedPosition != null) { console.log("objectDisplayedPosition: ", objectDisplayedPosition) }
+    if (isObjectDisplayed && objectDisplayedPosition != null) {
+      console.log("objectDisplayedPosition: ", objectDisplayedPosition)
+    }
   }, [objectDisplayedPosition])
 
-  const initialScene = (props) => {
+  const printHandler = () => {
+    const cameraRotationAngle = currentCameraOrientation["rotation"];
+    console.log("cameraRotationAngle", cameraRotationAngle);
+  }
 
+  const initialScene = (props) => {
     return (
       <ViroARScene
         onCameraTransformUpdate={(orientationInfo) =>
@@ -188,8 +270,8 @@ export default () => {
           onAnchorFound={(transformInfo) => {
             onBarCodeFoundMarker(transformInfo);
           }}
-        >
-          <ViroAmbientLight color="#ffffff" />
+        />
+        <ViroAmbientLight color="#ffffff" />
           <Viro3DObject
             source={require("./assets/Diamond/diamond.obj")}
             resources={[
@@ -197,11 +279,11 @@ export default () => {
             ]}
             materials={["wood"]}
             highAccuracyEvents={true}
-            position={objectDisplayedPosition}
-            scale={[0.2, 0.2, 0.2]}
+            position={ob}
+            scale={[0.1, 0.1, 0.1]}
+            rotation={[-45, 0, 0]}
             type="OBJ"
           />
-        </ViroARImageMarker>
 
       </ViroARScene>
       // <ViroARScene onTrackingUpdated={onInitialized}>
@@ -224,8 +306,8 @@ export default () => {
         style={{ flex: 1 }}
       />
       <View style={styles.controlView}>
-        <TouchableOpacity onPress={() => calculateHandler()}>
-          <Text>Calculate the Distance</Text>
+        <TouchableOpacity onPress={() => printHandler()}>
+          <Text>print</Text>
         </TouchableOpacity>
       </View>
     </View>
