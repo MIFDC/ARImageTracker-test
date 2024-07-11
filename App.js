@@ -27,7 +27,6 @@ import { Asset } from "expo-asset";
 import * as math from 'mathjs';
 
 import image from './assets/BarCode/qrcode_www.bing.com.png'
-import { CameraOrientation } from "expo-camera/build/legacy/Camera.types";
 
 export default () => {
   const [text, setText] = useState("Initializing AR...");
@@ -41,7 +40,10 @@ export default () => {
   const [barCodeGlobalPosition, setBarCodeGlobalPosition] = useState([0, 0, 0]);
   const [objectGlobalPosition, setObjectGlobalPosition] = useState([0, 0, 0]);
   const [objectDisplayedPosition, setObjectDisplayedPosition] = useState(null);
-  
+
+  const [isCameraTransformHandled, setIsCameraTransformHandled] = useState(false);
+  const [isBarCodeFoundHandled, setIsBarCodeFoundHandled] = useState(false);
+
 
   const imageSource = Image.resolveAssetSource(image);
   const imageUrl = imageSource["uri"];
@@ -62,19 +64,31 @@ export default () => {
   })
 
 
+  const checkAndRunCalculateHandler = () => {
+    if (isCameraTransformHandled && isBarCodeFoundHandled) {
+      calculateHandler();
+      setIsCameraTransformHandled(false);
+      setIsBarCodeFoundHandled(false);
+    }
+  };
+
+
   const onCameraTransformHandler = (transform) => {
+
+    setIsCameraTransformHandled(true);
+
     const cameraOrientationValue = transform;
     //console.log(transform);
     //console.log("cameraOrientationValue:", cameraOrientationValue);
     setCurrentCameraOrientation(cameraOrientationValue);
   };
-  
+
   function getBarcodeGlobalCoordinates() {
-    return [0, 0, 0]
+    return [1, 2, 3]
   }
 
   function getNonComplianceGlobalCoordinates() {
-    return [[0, 0, -1], [1, 0, 0]]
+    return [[1, 2, 4], [1, 0, 0]]
   }
 
 
@@ -88,20 +102,23 @@ export default () => {
   };
 
   const onBarCodeFoundMarker = (transform) => {
+
+    setIsBarCodeFoundHandled(true);
+
     // console.log("currentCameraOrientation in app", currentCameraOrientation);
     scanQRCodeFromImage(imageUrl);
     const barCodePosition = transform["position"];
     const barCodeRotation = transform["rotation"];
     setCurrentBarCodePosition(barCodePosition);
     setCurrentBarCodeRotation(barCodeRotation);
-    console.log("barcodePosition:", barCodePosition);
+    //console.log("barcodePosition:", barCodePosition);
     //console.log(cameraOrientation)
     setIsAnchorFound(true);
     const barCodeGlobalCoordinates = getBarcodeGlobalCoordinates();
     const listOfNonComplianceCoordinates = getNonComplianceGlobalCoordinates();
     setBarCodeGlobalPosition(barCodeGlobalCoordinates);
     setObjectGlobalPosition(listOfNonComplianceCoordinates[0]);
-    // console.log("onBarCodeFound transformInfo Marker", transform)
+    console.log("listOfNonComplianceCoordinates[0]", listOfNonComplianceCoordinates[0])
   };
 
   // rad for calculate
@@ -154,12 +171,13 @@ export default () => {
 
     const mx2 = mat4.create();
     mat4.multiply(mx2, mx, mx);
+    const mx3 = mat4.create();
+    mat4.multiplyScalar(mx3, mx2, (1 - dotProduct) / (s ** 2))
 
     const rotationMatrix = mat4.create();
-    mat4.identity(rotationMatrix);        
+    mat4.identity(rotationMatrix);
     mat4.add(rotationMatrix, rotationMatrix, mx);
-
-    console.log("rotationMatrix: ", rotationMatrix)
+    mat4.add(rotationMatrix, rotationMatrix, mx3);
 
     //apply rotation martrix to the local coordinates of Barcode
     const rotatedLocalMarkerCoords = vec3.create();
@@ -185,12 +203,12 @@ export default () => {
     const inverseMatrix = mat4.create();
     //invert the transformation martriex
     mat4.invert(inverseMatrix, affineTransformationMatrix);
-    console.log("inverseMatrix:", inverseMatrix)
 
     const pointHomogeneous = vec3.fromValues(point[0], point[1], point[2]);
-    console.log("pointHomogenious", pointHomogeneous)
+
     const transformedPointHomogeneous = vec3.create();
     vec3.transformMat4(transformedPointHomogeneous, pointHomogeneous, inverseMatrix);
+    console.log("transformedPointHomogeneous:", transformedPointHomogeneous);
     return transformedPointHomogeneous;
   };
 
@@ -204,7 +222,7 @@ export default () => {
     //console.log("Camera Position:", cameraPosition);
     //console.log("Camera Rotation", cameraRotation);
     //console.log("BarCode Position: ", currentBarCodePosition);
-    console.log("BarCode Rotation: ", currentBarCodeRotation);
+    //console.log("BarCode Rotation: ", currentBarCodeRotation);
     const cameraMatrix = createTransformationMatrix(
       cameraPosition,
       cameraRotation
@@ -220,16 +238,18 @@ export default () => {
 
     const barCodeTranslationPosition = vec3.create();
     mat4.getTranslation(barCodeTranslationPosition, barCodeMatrix);
-        
+
     const accurateVector = vec3.create();
     vec3.subtract(accurateVector, cameraTranslationPosition, barCodeTranslationPosition);
     const accurateDistance = vec3.length(accurateVector);
     console.log("vector: ", accurateVector);
     console.log("distance considering rotation:", accurateDistance);
 
-    const transforamtionMartix = calculateAffineTransformation(barCodeTranslationPosition, barCodeGlobalPosition, barCodeTranslationPosition, barCodeGlobalPosition)
-    console.log("transforamtionMartix", transforamtionMartix)
-    const objectCurrentDisplayedPosition = transformGlobalToLocal(objectGlobalPosition, transforamtionMartix)
+    const transformationMartix = calculateAffineTransformation(barCodeTranslationPosition, barCodeGlobalPosition, barCodeTranslationPosition, barCodeGlobalPosition)
+
+    const objectCurrentDisplayedPosition = transformGlobalToLocal(objectGlobalPosition, transformationMartix)
+    console.log("transformationMartrix:", transformationMartix)
+    console.log("objectGlobalPosition:", objectGlobalPosition)
     setObjectDisplayedPosition(objectCurrentDisplayedPosition);
     setIsObjectDisplayed(true);
   };
@@ -237,7 +257,9 @@ export default () => {
   // const toggleObjectStatus = () => {
   //   setIsObjectDisplayed(true);
   // }
-  useEffect(() => {
+
+
+  /*useEffect(() => {
     if (isAnchorFound) {
       //console.log("currentCameraOrientation in useEffect:",currentCameraOrientation);
       calculateHandler();
@@ -245,7 +267,7 @@ export default () => {
     }
 
     return;
-  }, [currentCameraOrientation, isAnchorFound]);
+  }, [currentCameraOrientation, isAnchorFound]);*/
 
   useEffect(() => {
     if (isObjectDisplayed && objectDisplayedPosition != null) {
@@ -258,7 +280,16 @@ export default () => {
     console.log("cameraRotationAngle", cameraRotationAngle);
   }
 
+  /*const handleAnchorFound = async (transformInfo) => {
+    onBarCodeFoundMarker(transformInfo);
+    calculateHandler();
+  };*/
+
   const initialScene = (props) => {
+    const handleNavigation = () => {
+      props.sceneNavigator.jump({ scene: secondScene })
+    }
+
     return (
       <ViroARScene
         onCameraTransformUpdate={(orientationInfo) =>
@@ -270,32 +301,38 @@ export default () => {
           onAnchorFound={(transformInfo) => {
             onBarCodeFoundMarker(transformInfo);
           }}
-        />
-        <ViroAmbientLight color="#ffffff" />
-          <Viro3DObject
-            source={require("./assets/Diamond/diamond.obj")}
-            resources={[
-              require('./assets/Diamond/diamond.fbx'),
-            ]}
-            materials={["wood"]}
-            highAccuracyEvents={true}
-            position={ob}
-            scale={[0.1, 0.1, 0.1]}
-            rotation={[-45, 0, 0]}
-            type="OBJ"
-          />
-
+        >
+          <ViroAmbientLight color="#ffffff" />
+          {isObjectDisplayed && objectDisplayedPosition && (
+            <Viro3DObject
+              source={require("./assets/Diamond/diamond.obj")}
+              resources={[
+                require('./assets/Diamond/diamond.fbx'),
+              ]}
+              materials={["wood"]}
+              highAccuracyEvents={true}
+              position={objectDisplayedPosition}
+              scale={[0.1, 0.1, 0.1]}
+              rotation={[-45, 0, 0]}
+              type="OBJ"
+            />
+          )}
+        </ViroARImageMarker>
       </ViroARScene>
-      // <ViroARScene onTrackingUpdated={onInitialized}>
-      //   <ViroText
-      //     text={text}
-      //     scale={[0.5, 0.5, 0.5]}
-      //     position={[0, 0, -1]}
-      //     style={styles.helloWorldTextStyle}
-      //   />
-      // </ViroARScene>
     )
   }
+
+  const secondScene = (props) => {
+    console.log("secondScene")
+    return (
+      <ViroARScene>
+
+      </ViroARScene>
+
+    )
+  }
+
+
 
   return (
     <View style={styles.mainView}>
@@ -306,7 +343,9 @@ export default () => {
         style={{ flex: 1 }}
       />
       <View style={styles.controlView}>
-        <TouchableOpacity onPress={() => printHandler()}>
+        <TouchableOpacity onPress={() => {
+          checkAndRunCalculateHandler()
+        }}>
           <Text>print</Text>
         </TouchableOpacity>
       </View>

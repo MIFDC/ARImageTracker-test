@@ -45,12 +45,6 @@
         }
       ],
       [
-        "expo-camera",
-        {
-          "recordAudioAndroid": true
-        }
-      ],
-      [
         "expo-asset",
         {
           "assets": [
