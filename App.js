@@ -40,6 +40,7 @@ export default () => {
   const [barCodeGlobalPosition, setBarCodeGlobalPosition] = useState([0, 0, 0]);
   const [objectGlobalPosition, setObjectGlobalPosition] = useState([0, 0, 0]);
   const [objectDisplayedPosition, setObjectDisplayedPosition] = useState(null);
+  const [objectKey, setObjectKey] = useState(0);
 
   const [isCameraTransformHandled, setIsCameraTransformHandled] = useState(false);
   const [isBarCodeFoundHandled, setIsBarCodeFoundHandled] = useState(false);
@@ -213,7 +214,7 @@ export default () => {
   };
 
 
-  const calculateHandler = () => {
+  const calculateHandler = useCallback(() => {
     const cameraPosition = currentCameraOrientation["position"];
     const cameraRotation = currentCameraOrientation["rotation"];
     //console.log("Camera Orientation position: ", cameraOrientation.position);
@@ -250,9 +251,11 @@ export default () => {
     const objectCurrentDisplayedPosition = transformGlobalToLocal(objectGlobalPosition, transformationMartix)
     console.log("transformationMartrix:", transformationMartix)
     console.log("objectGlobalPosition:", objectGlobalPosition)
-    setObjectDisplayedPosition(objectCurrentDisplayedPosition);
+    //setObjectDisplayedPosition([...objectCurrentDisplayedPosition]);
+    setObjectDisplayedPosition([...objectCurrentDisplayedPosition]);
+    setObjectKey(prevKey => prevKey + 1);
     setIsObjectDisplayed(true);
-  };
+  }, [currentCameraOrientation, currentBarCodePosition, currentBarCodeRotation, barCodeGlobalPosition, objectGlobalPosition]);
 
   // const toggleObjectStatus = () => {
   //   setIsObjectDisplayed(true);
@@ -270,8 +273,10 @@ export default () => {
   }, [currentCameraOrientation, isAnchorFound]);*/
 
   useEffect(() => {
-    if (isObjectDisplayed && objectDisplayedPosition != null) {
-      console.log("objectDisplayedPosition: ", objectDisplayedPosition)
+    if (objectDisplayedPosition != null) {
+      console.log("objectDisplayedPosition changed: ", objectDisplayedPosition);
+      console.log("New position: ", JSON.stringify(objectDisplayedPosition));
+      setObjectKey(prevKey => prevKey + 1);
     }
   }, [objectDisplayedPosition])
 
@@ -303,20 +308,30 @@ export default () => {
           }}
         >
           <ViroAmbientLight color="#ffffff" />
-          {isObjectDisplayed && objectDisplayedPosition && (
-            <Viro3DObject
-              source={require("./assets/Diamond/diamond.obj")}
-              resources={[
-                require('./assets/Diamond/diamond.fbx'),
-              ]}
-              materials={["wood"]}
-              highAccuracyEvents={true}
-              position={objectDisplayedPosition}
-              scale={[0.1, 0.1, 0.1]}
-              rotation={[-45, 0, 0]}
-              type="OBJ"
-            />
-          )}
+          <Viro3DObject
+            key={objectKey}
+            source={require("./assets/Diamond/diamond.obj")}
+            resources={[
+              require('./assets/Diamond/diamond.fbx'),
+            ]}
+            materials={["wood"]}
+            highAccuracyEvents={true}
+            position={objectDisplayedPosition || [0, 0, 0]}
+            scale={[0.1, 0.1, 0.1]}
+            rotation={[-45, 0, 0]}
+            type="OBJ"
+            transformBehaviors={["billboard"]}
+            onTransformUpdate={(objectTransformInfo) =>
+              objectTransformHandler(objectTransformInfo)
+            }
+            onLoadStart={() =>
+              objectOnloadStartHandler()
+            }
+            onLoadEnd={() =>
+              objectOnloadEndHandler()
+            }
+            onClick={() => onClickHandler()}
+          />
         </ViroARImageMarker>
       </ViroARScene>
     )
