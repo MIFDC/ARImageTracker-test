@@ -18,15 +18,16 @@ import {
   ViroConstants,
   ViroTrackingStateConstants,
 } from "@reactvision/react-viro";
-import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Text, TouchableOpacity, Image } from "react-native";
-// import { transform } from "typescript";
+import React, { useState, useEffect, useCallback, setState, useRef } from "react";
+import { StyleSheet, View, Text, TouchableOpacity, Image, Modal, Button, SafeAreaView } from "react-native";
 import { Camera, CameraView } from "expo-camera";
 import { mat4, vec3, quat } from "gl-matrix";
 import { Asset } from "expo-asset";
 import * as math from 'mathjs';
 
 import image from './assets/BarCode/qrcode_www.bing.com.png'
+
+import SignatureComponent from './components/SignatureComponent';
 
 export default () => {
   const [text, setText] = useState("Initializing AR...");
@@ -43,6 +44,8 @@ export default () => {
 
   const [isCameraTransformHandled, setIsCameraTransformHandled] = useState(false);
   const [isBarCodeFoundHandled, setIsBarCodeFoundHandled] = useState(false);
+
+  const [isClicked, setIsClicked] = useState(false);
 
 
   const imageSource = Image.resolveAssetSource(image);
@@ -73,7 +76,7 @@ export default () => {
   };
 
 
-  const onCameraTransformHandler = (transform) => {
+  const onCameraTransformHandler = useCallback((transform) => {
 
     setIsCameraTransformHandled(true);
 
@@ -81,7 +84,7 @@ export default () => {
     //console.log(transform);
     //console.log("cameraOrientationValue:", cameraOrientationValue);
     setCurrentCameraOrientation(cameraOrientationValue);
-  };
+  }, []);
 
   function getBarcodeGlobalCoordinates() {
     return [1, 2, 3]
@@ -101,7 +104,7 @@ export default () => {
     setScannedResult(scanResultData);
   };
 
-  const onBarCodeFoundMarker = (transform) => {
+  const onBarCodeFoundMarker = useCallback((transform) => {
 
     setIsBarCodeFoundHandled(true);
 
@@ -119,7 +122,7 @@ export default () => {
     setBarCodeGlobalPosition(barCodeGlobalCoordinates);
     setObjectGlobalPosition(listOfNonComplianceCoordinates[0]);
     console.log("listOfNonComplianceCoordinates[0]", listOfNonComplianceCoordinates[0])
-  };
+  }, []);
 
   // rad for calculate
   const degreeToRadian = (degree) => degree * (Math.PI / 180);
@@ -250,9 +253,29 @@ export default () => {
     const objectCurrentDisplayedPosition = transformGlobalToLocal(objectGlobalPosition, transformationMartix)
     console.log("transformationMartrix:", transformationMartix)
     console.log("objectGlobalPosition:", objectGlobalPosition)
-    setObjectDisplayedPosition(objectCurrentDisplayedPosition);
+    //setObjectDisplayedPosition([...objectCurrentDisplayedPosition]);
+    setObjectDisplayedPosition([...objectCurrentDisplayedPosition]);
     setIsObjectDisplayed(true);
   };
+
+  const objectTransformHandler = (objectTransformInfo) => {
+    console.log(objectTransformInfo)
+  }
+
+  const objectOnloadStartHandler = () => {
+    console.log("LoadStart")
+  }
+
+  const objectOnloadEndHandler = () => {
+    console.log("LoadEnd")
+  }
+
+  const onClickHandler = () => {
+    console.log("clicked")
+    setIsClicked(true);
+    setObjectDisplayedPosition([0, 0, 1]);
+  }
+
 
   // const toggleObjectStatus = () => {
   //   setIsObjectDisplayed(true);
@@ -270,15 +293,16 @@ export default () => {
   }, [currentCameraOrientation, isAnchorFound]);*/
 
   useEffect(() => {
-    if (isObjectDisplayed && objectDisplayedPosition != null) {
-      console.log("objectDisplayedPosition: ", objectDisplayedPosition)
+    if (objectDisplayedPosition != null) {
+      console.log("objectDisplayedPosition changed: ", objectDisplayedPosition);
+      console.log("New position: ", JSON.stringify(objectDisplayedPosition));
     }
-  }, [objectDisplayedPosition])
+  }, [objectDisplayedPosition, isObjectDisplayed])
 
-  const printHandler = () => {
+  /*const printHandler = () => {
     const cameraRotationAngle = currentCameraOrientation["rotation"];
     console.log("cameraRotationAngle", cameraRotationAngle);
-  }
+  }*/
 
   /*const handleAnchorFound = async (transformInfo) => {
     onBarCodeFoundMarker(transformInfo);
@@ -303,21 +327,32 @@ export default () => {
           }}
         >
           <ViroAmbientLight color="#ffffff" />
-          {isObjectDisplayed && objectDisplayedPosition && (
-            <Viro3DObject
-              source={require("./assets/Diamond/diamond.obj")}
-              resources={[
-                require('./assets/Diamond/diamond.fbx'),
-              ]}
-              materials={["wood"]}
-              highAccuracyEvents={true}
-              position={objectDisplayedPosition}
-              scale={[0.1, 0.1, 0.1]}
-              rotation={[-45, 0, 0]}
-              type="OBJ"
-            />
-          )}
+          <Viro3DObject
+            key={JSON.stringify(objectDisplayedPosition)}
+            source={require("./assets/Diamond/diamond.obj")}
+            resources={[
+              require('./assets/Diamond/diamond.fbx'),
+            ]}
+            materials={["wood"]}
+            highAccuracyEvents={true}
+            position={objectDisplayedPosition}
+            scale={[0.1, 0.1, 0.1]}
+            rotation={[-45, 0, 0]}
+            type="OBJ"
+            transformBehaviors={["billboard"]}
+            onTransformUpdate={(objectTransformInfo) =>
+              objectTransformHandler(objectTransformInfo)
+            }
+            onLoadStart={() =>
+              objectOnloadStartHandler()
+            }
+            onLoadEnd={() =>
+              objectOnloadEndHandler()
+            }
+            onClick={() => onClickHandler()}
+          />
         </ViroARImageMarker>
+
       </ViroARScene>
     )
   }
@@ -342,6 +377,7 @@ export default () => {
         }}
         style={{ flex: 1 }}
       />
+
       <View style={styles.controlView}>
         <TouchableOpacity onPress={() => {
           checkAndRunCalculateHandler()
@@ -349,7 +385,32 @@ export default () => {
           <Text>print</Text>
         </TouchableOpacity>
       </View>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isClicked}
+        onRequestClose={() => {
+          setIsClicked(false);
+        }}
+      >
+        <View style={styles.modalView}>
+
+      <SafeAreaView style={styles.container}>
+        <SignatureComponent />
+      </SafeAreaView>
+          <Text style={styles.modalText}>More deatails on the location</Text>
+          <Button
+            title="Close"
+            onPress={() => {
+              setIsClicked(false);
+            }}
+          />
+        </View>
+      </Modal>
+
     </View>
+
   );
 }
 // export default () => {
@@ -387,5 +448,19 @@ var styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+  },
+  modalView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalText: {
+    fontSize: 20,
+    color: 'white',
+    marginBottom: 20,
+  },
+  container: {
+    flex: 1,
   },
 });
