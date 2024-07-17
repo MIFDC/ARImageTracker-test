@@ -38,6 +38,7 @@ export default () => {
   const [isAnchorFound, setIsAnchorFound] = useState(false);
 
   const [isObjectDisplayed, setIsObjectDisplayed] = useState(false);
+  const [isSceneRendered, setIsSceneRendered] = useState(true);
   const [barCodeGlobalPosition, setBarCodeGlobalPosition] = useState([0, 0, 0]);
   const [objectGlobalPosition, setObjectGlobalPosition] = useState([0, 0, 0]);
   const [objectDisplayedPosition, setObjectDisplayedPosition] = useState(null);
@@ -87,11 +88,11 @@ export default () => {
   }, []);
 
   function getBarcodeGlobalCoordinates() {
-    return [1, 2, 3]
+    return [1, 0, 1]
   }
 
   function getNonComplianceGlobalCoordinates() {
-    return [[1, 2, 4], [1, 0, 0]]
+    return [[1, 0, 2], [1, 0, 0]]
   }
 
 
@@ -107,6 +108,8 @@ export default () => {
   const onBarCodeFoundMarker = useCallback((transform) => {
 
     setIsBarCodeFoundHandled(true);
+
+    setIsSceneRendered(!isSceneRendered);
 
     // console.log("currentCameraOrientation in app", currentCameraOrientation);
     scanQRCodeFromImage(imageUrl);
@@ -256,6 +259,7 @@ export default () => {
     //setObjectDisplayedPosition([...objectCurrentDisplayedPosition]);
     setObjectDisplayedPosition([...objectCurrentDisplayedPosition]);
     setIsObjectDisplayed(true);
+    setIsSceneRendered(!isSceneRendered)
   };
 
   const objectTransformHandler = (objectTransformInfo) => {
@@ -326,32 +330,33 @@ export default () => {
             onBarCodeFoundMarker(transformInfo);
           }}
         >
-          <ViroAmbientLight color="#ffffff" />
-          <Viro3DObject
-            key={JSON.stringify(objectDisplayedPosition)}
-            source={require("./assets/Diamond/diamond.obj")}
-            resources={[
-              require('./assets/Diamond/diamond.fbx'),
-            ]}
-            materials={["wood"]}
-            highAccuracyEvents={true}
-            position={objectDisplayedPosition}
-            scale={[0.1, 0.1, 0.1]}
-            rotation={[-45, 0, 0]}
-            type="OBJ"
-            transformBehaviors={["billboard"]}
-            onTransformUpdate={(objectTransformInfo) =>
-              objectTransformHandler(objectTransformInfo)
-            }
-            onLoadStart={() =>
-              objectOnloadStartHandler()
-            }
-            onLoadEnd={() =>
-              objectOnloadEndHandler()
-            }
-            onClick={() => onClickHandler()}
-          />
         </ViroARImageMarker>
+
+        <ViroAmbientLight color="#ffffff" />
+        {isObjectDisplayed && <Viro3DObject
+          key={JSON.stringify(objectDisplayedPosition)}
+          source={require("./assets/Diamond/diamond.obj")}
+          resources={[
+            require('./assets/Diamond/diamond.fbx'),
+          ]}
+          materials={["wood"]}
+          highAccuracyEvents={true}
+          position={objectDisplayedPosition}
+          scale={[0.1, 0.1, 0.1]}
+          rotation={[-45, 0, 0]}
+          type="OBJ"
+          transformBehaviors={["billboard"]}
+          onTransformUpdate={(objectTransformInfo) =>
+            objectTransformHandler(objectTransformInfo)
+          }
+          onLoadStart={() =>
+            objectOnloadStartHandler()
+          }
+          onLoadEnd={() =>
+            objectOnloadEndHandler()
+          }
+          onClick={() => onClickHandler()}
+        />}
 
       </ViroARScene>
     )
@@ -371,12 +376,12 @@ export default () => {
 
   return (
     <View style={styles.mainView}>
-      <ViroARSceneNavigator
+      {isSceneRendered && <ViroARSceneNavigator
         initialScene={{
           scene: initialScene,
         }}
         style={{ flex: 1 }}
-      />
+      />}
 
       <View style={styles.controlView}>
         <TouchableOpacity onPress={() => {
@@ -396,9 +401,10 @@ export default () => {
       >
         <View style={styles.modalView}>
 
-      <SafeAreaView style={styles.container}>
-        <SignatureComponent />
-      </SafeAreaView>
+          <SafeAreaView style={styles.container}>
+            <SignatureComponent />
+          </SafeAreaView>
+          <View>
           <Text style={styles.modalText}>More deatails on the location</Text>
           <Button
             title="Close"
@@ -406,6 +412,7 @@ export default () => {
               setIsClicked(false);
             }}
           />
+          </View>
         </View>
       </Modal>
 
