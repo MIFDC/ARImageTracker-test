@@ -6,7 +6,7 @@ const SignatureComponent = () => {
   const ref = useRef();
 
   const handleSignature = (signature) => {
-    console.log(signature); // Handle the signature data here
+    console.log(signature); 
   };
 
   const handleEmpty = () => {

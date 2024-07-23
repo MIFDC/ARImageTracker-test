@@ -68,13 +68,13 @@ export default () => {
   })
 
 
-  const checkAndRunCalculateHandler = () => {
+  /*const checkAndRunCalculateHandler = () => {
     if (isCameraTransformHandled && isBarCodeFoundHandled) {
       calculateHandler();
       setIsCameraTransformHandled(false);
       setIsBarCodeFoundHandled(false);
     }
-  };
+  };*/
 
 
   const onCameraTransformHandler = useCallback((transform) => {
@@ -277,7 +277,6 @@ export default () => {
   const onClickHandler = () => {
     console.log("clicked")
     setIsClicked(true);
-    setObjectDisplayedPosition([0, 0, 1]);
   }
 
 
@@ -286,15 +285,16 @@ export default () => {
   // }
 
 
-  /*useEffect(() => {
-    if (isAnchorFound) {
-      //console.log("currentCameraOrientation in useEffect:",currentCameraOrientation);
+  useEffect(() => {
+    if (isCameraTransformHandled && isBarCodeFoundHandled) {
       calculateHandler();
-      setIsAnchorFound(false);
-    }
+      setIsCameraTransformHandled(false);
+      setIsBarCodeFoundHandled(false);
+
+    };
 
     return;
-  }, [currentCameraOrientation, isAnchorFound]);*/
+  }, [currentCameraOrientation, isAnchorFound]);
 
   useEffect(() => {
     if (objectDisplayedPosition != null) {
@@ -342,7 +342,7 @@ export default () => {
           materials={["wood"]}
           highAccuracyEvents={true}
           position={objectDisplayedPosition}
-          scale={[0.1, 0.1, 0.1]}
+          scale={[1, 1, 1]}
           rotation={[-45, 0, 0]}
           type="OBJ"
           transformBehaviors={["billboard"]}
@@ -383,6 +383,10 @@ export default () => {
         style={{ flex: 1 }}
       />}
 
+
+
+
+
       <View style={styles.controlView}>
         <TouchableOpacity onPress={() => {
           checkAndRunCalculateHandler()
@@ -400,18 +404,17 @@ export default () => {
         }}
       >
         <View style={styles.modalView}>
-
-          <SafeAreaView style={styles.container}>
+          <SafeAreaView style={styles.signatureContainer}>
             <SignatureComponent />
           </SafeAreaView>
-          <View>
-          <Text style={styles.modalText}>More deatails on the location</Text>
-          <Button
-            title="Close"
-            onPress={() => {
-              setIsClicked(false);
-            }}
-          />
+          <View style={styles.textView}>
+            <Text style={styles.modalText}>More deatails on the location</Text>
+            <Button
+              title="Close"
+              onPress={() => {
+                setIsClicked(false);
+              }}
+            />
           </View>
         </View>
       </Modal>
@@ -457,17 +460,25 @@ var styles = StyleSheet.create({
     alignItems: "center",
   },
   modalView: {
+    height: '50%',
+    width: '100%',
+    backgroundColor: '#25292e',
+    borderTopRightRadius: 18,
+    borderTopLeftRadius: 18,
+    position: 'absolute',
+    bottom: 0,
+  },
+  textView: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalText: {
     fontSize: 20,
     color: 'white',
     marginBottom: 20,
   },
-  container: {
-    flex: 1,
+  signatureContainer: {
+    flex: 2,
   },
 });
