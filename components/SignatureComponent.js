@@ -34,7 +34,7 @@ const SignatureComponent = () => {
       />
       <View style={styles.buttons}>
         <Button title="Clear" onPress={handleClear} />
-        <Button title="Save" onPress={handleConfirm} />
+        <Button title="SendSignature" onPress={handleConfirm} />
       </View>
     </View>
   );

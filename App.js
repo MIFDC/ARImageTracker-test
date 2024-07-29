@@ -24,6 +24,8 @@ import { Camera, CameraView } from "expo-camera";
 import { mat4, vec3, quat } from "gl-matrix";
 import { Asset } from "expo-asset";
 import * as math from 'mathjs';
+import * as MediaLibrary from 'expo-media-library';
+import { captureRef } from 'react-native-view-shot';
 
 import image from './assets/BarCode/qrcode_www.bing.com.png'
 
@@ -38,7 +40,6 @@ export default () => {
   const [isAnchorFound, setIsAnchorFound] = useState(false);
 
   const [isObjectDisplayed, setIsObjectDisplayed] = useState(false);
-  const [isSceneRendered, setIsSceneRendered] = useState(true);
   const [barCodeGlobalPosition, setBarCodeGlobalPosition] = useState([0, 0, 0]);
   const [objectGlobalPosition, setObjectGlobalPosition] = useState([0, 0, 0]);
   const [objectDisplayedPosition, setObjectDisplayedPosition] = useState(null);
@@ -47,10 +48,19 @@ export default () => {
   const [isBarCodeFoundHandled, setIsBarCodeFoundHandled] = useState(false);
 
   const [isClicked, setIsClicked] = useState(false);
+  const arSceneNavigatorRef = useRef(null);
 
+  const [status, requestPermission] = MediaLibrary.usePermissions();
 
   const imageSource = Image.resolveAssetSource(image);
   const imageUrl = imageSource["uri"];
+
+  if (status === null) {
+    requestPermission();
+  }
+
+  const imageRef = useRef();
+
 
   ViroARTrackingTargets.createTargets({
     "BarCode": {
@@ -108,8 +118,6 @@ export default () => {
   const onBarCodeFoundMarker = useCallback((transform) => {
 
     setIsBarCodeFoundHandled(true);
-
-    setIsSceneRendered(!isSceneRendered);
 
     // console.log("currentCameraOrientation in app", currentCameraOrientation);
     scanQRCodeFromImage(imageUrl);
@@ -220,6 +228,7 @@ export default () => {
 
 
   const calculateHandler = () => {
+
     const cameraPosition = currentCameraOrientation["position"];
     const cameraRotation = currentCameraOrientation["rotation"];
     //console.log("Camera Orientation position: ", cameraOrientation.position);
@@ -253,13 +262,14 @@ export default () => {
 
     const transformationMartix = calculateAffineTransformation(barCodeTranslationPosition, barCodeGlobalPosition, barCodeTranslationPosition, barCodeGlobalPosition)
 
-    const objectCurrentDisplayedPosition = transformGlobalToLocal(objectGlobalPosition, transformationMartix)
+    const objectCurrentDisplayedPosition = transformGlobalToLocal(objectGlobalPosition, transformationMartix);
     console.log("transformationMartrix:", transformationMartix)
     console.log("objectGlobalPosition:", objectGlobalPosition)
     //setObjectDisplayedPosition([...objectCurrentDisplayedPosition]);
     setObjectDisplayedPosition([...objectCurrentDisplayedPosition]);
     setIsObjectDisplayed(true);
-    setIsSceneRendered(!isSceneRendered)
+
+    console.log("Camera Position When Calculated:", currentCameraOrientation)
   };
 
   const objectTransformHandler = (objectTransformInfo) => {
@@ -279,10 +289,30 @@ export default () => {
     setIsClicked(true);
   }
 
+// it is not used because it can't work on ViroARSceneNavigator
+  const onSaveImageAsync = async () => {
+    try {
+      const localUri = await captureRef(imageRef, {
+        height: 440,
+        quality: 1,
+      });
 
-  // const toggleObjectStatus = () => {
-  //   setIsObjectDisplayed(true);
-  // }
+      await MediaLibrary.saveToLibraryAsync(localUri);
+      if (localUri) {
+        alert("Saved!");
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+
+
+  const takeScreenshot = async () => {
+    arSceneNavigatorRef.current.takeScreenshot("screenshot", true)
+    .then ((result) => {
+        console.log("Screenshot saved at: ", result.url);
+  })};
 
 
   useEffect(() => {
@@ -296,12 +326,23 @@ export default () => {
     return;
   }, [currentCameraOrientation, isAnchorFound]);
 
+
   useEffect(() => {
-    if (objectDisplayedPosition != null) {
+    var i=0;
+    if (isObjectDisplayed && (objectDisplayedPosition != null)) {
+      arSceneNavigatorRef.current.jump({
+        scene: secondScene,
+        sceneName: "secondScene",
+
+      });
+      i+=1;
+      console.log("i", i)
       console.log("objectDisplayedPosition changed: ", objectDisplayedPosition);
-      console.log("New position: ", JSON.stringify(objectDisplayedPosition));
+      setIsObjectDisplayed(false);
     }
-  }, [objectDisplayedPosition, isObjectDisplayed])
+  }, [isObjectDisplayed, objectDisplayedPosition]);
+
+
 
   /*const printHandler = () => {
     const cameraRotationAngle = currentCameraOrientation["rotation"];
@@ -314,9 +355,6 @@ export default () => {
   };*/
 
   const initialScene = (props) => {
-    const handleNavigation = () => {
-      props.sceneNavigator.jump({ scene: secondScene })
-    }
 
     return (
       <ViroARScene
@@ -332,8 +370,16 @@ export default () => {
         >
         </ViroARImageMarker>
 
+      </ViroARScene>
+    )
+  }
+
+  const secondScene = (props) => {
+
+    return (
+      <ViroARScene>
         <ViroAmbientLight color="#ffffff" />
-        {isObjectDisplayed && <Viro3DObject
+        <Viro3DObject
           key={JSON.stringify(objectDisplayedPosition)}
           source={require("./assets/Diamond/diamond.obj")}
           resources={[
@@ -356,17 +402,7 @@ export default () => {
             objectOnloadEndHandler()
           }
           onClick={() => onClickHandler()}
-        />}
-
-      </ViroARScene>
-    )
-  }
-
-  const secondScene = (props) => {
-    console.log("secondScene")
-    return (
-      <ViroARScene>
-
+        />
       </ViroARScene>
 
     )
@@ -376,23 +412,23 @@ export default () => {
 
   return (
     <View style={styles.mainView}>
-      {isSceneRendered && <ViroARSceneNavigator
+
+      <ViroARSceneNavigator
+        ref={arSceneNavigatorRef}
         initialScene={{
           scene: initialScene,
         }}
         style={{ flex: 1 }}
-      />}
+      />
 
-
-
-
-
-      <View style={styles.controlView}>
-        <TouchableOpacity onPress={() => {
-          checkAndRunCalculateHandler()
-        }}>
-          <Text>print</Text>
-        </TouchableOpacity>
+      <View ref={imageRef} collapsable={false}>
+        <View style={styles.controlView}>
+          <TouchableOpacity onPress={
+            takeScreenshot
+          }>
+            <Text>TakePhoto</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Modal
